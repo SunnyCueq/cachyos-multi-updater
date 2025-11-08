@@ -1076,14 +1076,16 @@ check_script_update
 log_info "Update-Script erfolgreich beendet"
 
 # Terminal offen halten (auch bei Desktop-Icon)
-# WICHTIG: Bei Desktop-Icons ist Terminal oft nicht interaktiv, daher immer versuchen
+# WICHTIG: Bei Desktop-Icons ist Terminal oft nicht interaktiv
+# Prüfe ob wir von einer Desktop-Datei gestartet wurden
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-# Versuche read -p, falls das fehlschlägt, warte einfach
+# Immer warten - auch wenn nicht interaktiv (für Desktop-Icons)
 if [ -t 0 ] && [ -t 1 ]; then
-    read -p "Drücke Enter zum Beenden..." </dev/tty 2>/dev/null || sleep 3
+    # Interaktiv - normale Eingabe
+    read -p "Drücke Enter zum Beenden..." </dev/tty 2>/dev/null || sleep 5
 else
-    # Nicht interaktiv - warte kurz damit User Output sehen kann
-    sleep 5
+    # Nicht interaktiv (Desktop-Icon) - warte länger
+    sleep 10
 fi
 

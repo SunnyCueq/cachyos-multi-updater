@@ -15,11 +15,12 @@ if [ ! -f "$SCRIPT_PATH" ]; then
 fi
 
 # Erstelle Desktop-Datei mit absolutem Pfad
+# WICHTIG: bash -c mit exec und read hält Terminal offen
 cat > "$DESKTOP_FILE" <<EOF
 [Desktop Entry]
 Name=Update All
 Comment=Ein-Klick-Update für CachyOS + AUR + Cursor + AdGuard
-Exec=$SCRIPT_PATH
+Exec=bash -c "$SCRIPT_PATH; read -p 'Drücke Enter zum Beenden...'"
 Icon=system-software-update
 Terminal=true
 Type=Application
