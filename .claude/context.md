@@ -62,9 +62,12 @@ Ein Bash-Script für CachyOS Linux, das mit einem Klick mehrere Komponenten aktu
 
 ## Wichtige Dateien
 
+- `setup.sh` - Setup-Script für Erstinstallation (v2.7.5+)
 - `update-all.sh` - Hauptscript (SCRIPT_VERSION muss aktuell sein)
+- `create-desktop-shortcut.sh` - Helper-Script für Desktop-Verknüpfungen
 - `CHANGELOG.md` - Vollständige Versionshistorie
-- `README.md` - Haupt-Dokumentation
+- `README.md` - Haupt-Dokumentation (EN)
+- `README.de.md` - Haupt-Dokumentation (DE)
 - `config.conf.example` - Beispiel-Konfiguration
 - `update-all.desktop` - Desktop-Icon Template
 - `.github/workflows/test.yml` - CI/CD Pipeline
