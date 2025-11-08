@@ -660,15 +660,21 @@ if [ "$UPDATE_CURSOR" = "true" ]; then
             echo "📍 Installationspfad: $CURSOR_INSTALL_DIR"
             
             # Aktuelle Version ermitteln (versuche verschiedene Methoden)
-            CURRENT_VERSION=$(cursor --version 2>/dev/null | grep -oP '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "")
+            CURRENT_VERSION=""
+            # Methode 1: package.json (zuverlässigste Methode)
+            if [ -f "$CURSOR_INSTALL_DIR/resources/app/package.json" ]; then
+                CURRENT_VERSION=$(grep -oP '"version":\s*"\K[0-9.]+' "$CURSOR_INSTALL_DIR/resources/app/package.json" 2>/dev/null | head -1 || echo "")
+            fi
+            # Methode 2: cursor --version
             if [ -z "$CURRENT_VERSION" ]; then
-                # Versuche alternativen Weg
-                if [ -f "$CURSOR_INSTALL_DIR/cursor" ]; then
-                    CURRENT_VERSION=$("$CURSOR_INSTALL_DIR/cursor" --version 2>/dev/null | grep -oP '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "")
-                fi
-                if [ -z "$CURRENT_VERSION" ]; then
-                    CURRENT_VERSION="unbekannt"
-                fi
+                CURRENT_VERSION=$(cursor --version 2>/dev/null | grep -oP '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "")
+            fi
+            # Methode 3: Direkter Aufruf der Binary
+            if [ -z "$CURRENT_VERSION" ] && [ -f "$CURSOR_INSTALL_DIR/cursor" ]; then
+                CURRENT_VERSION=$("$CURSOR_INSTALL_DIR/cursor" --version 2>/dev/null | grep -oP '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "")
+            fi
+            if [ -z "$CURRENT_VERSION" ]; then
+                CURRENT_VERSION="unbekannt"
             fi
             log_info "Aktuelle Cursor-Version: $CURRENT_VERSION"
             echo "📌 Aktuelle Version: $CURRENT_VERSION"
@@ -1019,8 +1025,10 @@ else
     # Statistiken speichern
     save_stats "$DURATION" "true"
 
-    # Statistiken anzeigen
-    show_stats
+    # Statistiken anzeigen (nur wenn interaktiv)
+    if [ -t 0 ] && [ -t 1 ]; then
+        show_stats
+    fi
 
     if [ "$ENABLE_NOTIFICATIONS" = "true" ]; then
         notify-send "Update fertig!" "Dauer: ${MINUTES}m ${SECONDS}s" 2>/dev/null || true
@@ -1121,8 +1129,10 @@ check_script_update
 log_info "Update-Script erfolgreich beendet"
 
 # Terminal offen halten wenn interaktiv (auch bei Desktop-Icon)
-if [ -t 0 ] && [ -t 1 ]; then
+# WICHTIG: Prüfe ob wirklich interaktiv (Desktop-Icons haben oft kein echtes Terminal)
+if [ -t 0 ] && [ -t 1 ] && [ -n "${TERM:-}" ] && [ "${TERM:-}" != "dumb" ]; then
     echo ""
-    read -p "Drücke Enter zum Beenden..." || true
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    read -p "Drücke Enter zum Beenden..." </dev/tty || true
 fi
 

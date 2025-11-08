@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=Update All
 Comment=Ein-Klick-Update für CachyOS + AUR + Cursor + AdGuard
-Exec=bash -c "SCRIPT_DIR=\"\$(dirname '%k')\"; cd \"\$SCRIPT_DIR\" && bash ./update-all.sh; read -p 'Drücke Enter zum Beenden...'"
+Exec=bash -c "SCRIPT_DIR=\"\$(dirname '%k')\"; cd \"\$SCRIPT_DIR\" && exec bash ./update-all.sh"
 Icon=system-software-update
 Terminal=true
 Type=Application
