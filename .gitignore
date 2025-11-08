@@ -2,6 +2,10 @@
 logs/
 *.log
 
+# Lock-Files
+.update-all.lock
+*.lock
+
 # Temporäre Cursor-Dateien
 cursor_latest_amd64.deb
 cursor-extract/
@@ -12,14 +16,28 @@ cursor-extract/
 # Backup-Verzeichnisse
 *-backup-*
 
+# Konfigurationsdateien (User-spezifisch)
+config.conf.local
+*.local
+
 # Editor-Dateien
 *.swp
 *.swo
 *~
 .vscode/
 .idea/
+*.bak
+*.tmp
 
 # OS-Dateien
 .DS_Store
 Thumbs.db
+
+# User-spezifische Dateien
+*.user
+*.personal
+
+# Test-Dateien
+test-*
+*.test
 

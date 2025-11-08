@@ -1,0 +1,30 @@
+# CachyOS Multi-Updater Konfigurationsdatei
+# Kopiere diese Datei nach config.conf und passe die Werte an
+
+# Update-Komponenten aktivieren/deaktivieren
+ENABLE_SYSTEM_UPDATE=true
+ENABLE_AUR_UPDATE=true
+ENABLE_CURSOR_UPDATE=true
+ENABLE_ADGUARD_UPDATE=true
+
+# Logging
+LOG_LEVEL=INFO          # INFO, WARNING, ERROR
+MAX_LOG_FILES=10
+
+# Timeouts (in Sekunden)
+CURSOR_KILL_TIMEOUT=10
+DOWNLOAD_TIMEOUT=300
+
+# Pfade (leer = Auto-Detection)
+# ADGUARD_HOME_DIR=
+# CURSOR_INSTALL_DIR=
+
+# AUR Helper (yay oder paru, leer = Auto-Detection)
+# AUR_HELPER=
+
+# Notifications
+ENABLE_NOTIFICATIONS=true
+
+# Dry-Run (nur anzeigen, keine Änderungen)
+DRY_RUN=false
+

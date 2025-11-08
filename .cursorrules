@@ -1,0 +1,94 @@
+# Cursor Rules für CachyOS Multi-Updater
+
+## Projekt-Kontext
+
+Dieses Projekt ist ein Bash-Script für CachyOS, das automatisch System-Updates, AUR-Pakete, Cursor Editor und AdGuard Home aktualisiert.
+
+## Wichtige Dateien
+
+- `rules.md` - **HAUPTREGELN** - Entwicklungsregeln und Best Practices
+- `CONTEXT.md` - Projekt-Kontext und aktuelle Features
+- `claude.md` - Claude AI spezifischer Kontext
+- `IMPROVEMENTS.md` - Verbesserungsvorschläge
+
+## Entwicklungsregeln
+
+**WICHTIG:** Lies immer zuerst `rules.md` für die vollständigen Entwicklungsregeln!
+
+### Kritische Regeln:
+
+1. **Desktop-Datei Synchronisation:**
+   - Nach Änderungen an `update-all.desktop` muss die lokale Desktop-Datei aktualisiert werden
+   - Lokaler Pfad: `~/.local/share/applications/update-all.sh`
+   - Script-Pfad: `/mnt/ssd2/Backup (SSD2)/Tools/CachyOS MultiUpdater/update-all.sh`
+
+2. **Error Handling:**
+   - Immer Error Handling implementieren
+   - Fehler sollten nicht das gesamte Script stoppen
+   - Alle Fehler müssen geloggt werden
+
+3. **Logging:**
+   - Alle wichtigen Aktionen müssen geloggt werden
+   - Verwende die vorhandenen Logging-Funktionen (log_info, log_error, etc.)
+
+4. **Lock-File:**
+   - Lock-File muss verwendet werden
+   - Lock-File muss bei Exit entfernt werden
+
+5. **Git:**
+   - Keine Log-Dateien committen
+   - Keine temporären Dateien committen
+   - Desktop-Datei synchronisieren wenn geändert
+
+## Code-Stil
+
+- **Bash Best Practices:** `set -euo pipefail`
+- **Funktionen:** Verwende Funktionen für wiederholbare Logik
+- **Kommentare:** Kommentiere komplexe Logik
+- **Konsistenz:** Folge dem bestehenden Code-Stil
+
+## Beim Bearbeiten von Dateien
+
+### update-all.sh
+- Lock-File prüfen/erstellen
+- Error Handling hinzufügen
+- Logging hinzufügen
+- Tests durchführen
+
+### update-all.desktop
+- **WICHTIG:** Lokale Desktop-Datei aktualisieren!
+- Pfad im Exec-Befehl anpassen falls nötig
+
+### README.md / CONTEXT.md
+- Immer aktuell halten
+- Neue Features dokumentieren
+- Changelog aktualisieren
+
+## Beim Erstellen neuer Features
+
+1. Prüfe `IMPROVEMENTS.md` für Ideen
+2. Implementiere Feature
+3. Füge Error Handling hinzu
+4. Füge Logging hinzu
+5. Teste lokal
+6. Aktualisiere Dokumentation
+7. Aktualisiere CONTEXT.md
+
+## Referenzen
+
+- **Hauptregeln:** Siehe `rules.md`
+- **Projekt-Kontext:** Siehe `CONTEXT.md`
+- **Claude AI Kontext:** Siehe `claude.md`
+- **Verbesserungen:** Siehe `IMPROVEMENTS.md`
+
+## Wichtige Pfade
+
+- Script: `/mnt/ssd2/Backup (SSD2)/Tools/CachyOS MultiUpdater/update-all.sh`
+- Desktop: `~/.local/share/applications/update-all.desktop`
+- Logs: `logs/` (im Script-Verzeichnis)
+- GitHub: https://github.com/SunnyCueq/cachyos-multi-updater
+
+---
+
+**Bei Fragen oder Unsicherheiten: Lies zuerst `rules.md`!**
+
