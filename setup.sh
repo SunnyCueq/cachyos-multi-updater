@@ -47,7 +47,7 @@ echo -e "${COLOR_INFO}📋 Wähle Update-Modus:${COLOR_RESET}"
 echo ""
 echo "  1) --dry-run      (Test-Modus, keine Änderungen)"
 echo "  2) --interactive   (Interaktive Auswahl der Komponenten)"
-echo "  3) --auto          (Automatisch, alle Updates)"
+echo "  3) Standard        (Automatisch, alle Updates)"
 echo ""
 read -p "Wähle Modus (1-3, Standard: 3): " mode_choice
 mode_choice=${mode_choice:-3}
@@ -62,13 +62,13 @@ case "$mode_choice" in
         MODE_NAME="Interaktiv"
         ;;
     3)
-        UPDATE_MODE="--auto"
-        MODE_NAME="Automatisch"
+        UPDATE_MODE=""  # Standard-Modus = kein Parameter
+        MODE_NAME="Automatisch (Standard)"
         ;;
     *)
-        UPDATE_MODE="--auto"
-        MODE_NAME="Automatisch"
-        echo -e "${COLOR_WARNING}⚠️  Ungültige Eingabe, verwende Standard (--auto)${COLOR_RESET}"
+        UPDATE_MODE=""  # Standard-Modus = kein Parameter
+        MODE_NAME="Automatisch (Standard)"
+        echo -e "${COLOR_WARNING}⚠️  Ungültige Eingabe, verwende Standard (automatisch)${COLOR_RESET}"
         ;;
 esac
 
@@ -105,5 +105,9 @@ echo -e "${COLOR_BOLD}━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 # Starte update-all.sh mit gewähltem Modus
-exec bash "$UPDATE_SCRIPT" $UPDATE_MODE
+if [ -n "$UPDATE_MODE" ]; then
+    exec bash "$UPDATE_SCRIPT" "$UPDATE_MODE"
+else
+    exec bash "$UPDATE_SCRIPT"
+fi
 

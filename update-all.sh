@@ -5,7 +5,7 @@
 set -euo pipefail
 
 # ========== Version ==========
-readonly SCRIPT_VERSION="2.7.6"
+readonly SCRIPT_VERSION="2.7.7"
 readonly GITHUB_REPO="SunnyCueq/cachyos-multi-updater"
 
 # ========== Exit-Codes ==========
@@ -682,106 +682,244 @@ if [ "$UPDATE_CURSOR" = "true" ]; then
                 echo "ℹ️  Cursor-Version: $CURRENT_VERSION"
                 echo "🔍 Prüfe verfügbare Version..."
                 
-                log_info "Lade Cursor .deb von: $DOWNLOAD_URL"
-                echo "⬇️  Lade Cursor .deb..."
+                # NEU: Versuche Version OHNE Download zu prüfen (HTTP HEAD Request)
+                # Die API gibt einen Redirect mit Version im Dateinamen zurück
+                log_info "Prüfe verfügbare Version via HTTP HEAD..."
+                LOCATION_HEADER=$(curl -sI "$DOWNLOAD_URL" 2>/dev/null | grep -i "^location:" | cut -d' ' -f2- | tr -d '\r\n' || echo "")
                 
-                if download_with_retry "$DOWNLOAD_URL" "$DEB_FILE"; then
-                    if [[ -f "$DEB_FILE" ]] && [[ $(stat -c%s "$DEB_FILE") -gt 50000000 ]]; then
-                        DEB_SIZE=$(du -h "$DEB_FILE" | cut -f1)
-                        log_success "Download erfolgreich: $DEB_SIZE"
-                        echo "✅ Download erfolgreich: $DEB_SIZE"
+                if [ -n "$LOCATION_HEADER" ]; then
+                    # Extrahiere Version aus Dateinamen: cursor_2.0.69_amd64.deb -> 2.0.69
+                    LATEST_VERSION=$(echo "$LOCATION_HEADER" | grep -oP 'cursor_(\K[0-9.]+)' | head -1 || echo "")
+                    
+                    if [ -n "$LATEST_VERSION" ]; then
+                        log_info "Neueste verfügbare Version (via HTTP HEAD): $LATEST_VERSION"
+                        echo "📌 Verfügbare Version: $LATEST_VERSION"
                         
-                        # Extrahiere Version aus .deb (VOR Installation)
-                        TEMP_EXTRACT_DIR=$(mktemp -d -t cursor-version-check.XXXXXXXXXX)
-                        if ! cd "$TEMP_EXTRACT_DIR" 2>/dev/null; then
-                            log_warning "Konnte nicht in temporäres Verzeichnis wechseln, fahre mit Installation fort..."
-                            rm -rf "$TEMP_EXTRACT_DIR"
-                        elif ! ar x "$DEB_FILE" 2>/dev/null; then
-                            cd "$SCRIPT_DIR" || true
-                            rm -rf "$TEMP_EXTRACT_DIR"
-                            log_warning "Fehler beim Extrahieren der .deb-Datei, fahre mit Installation fort..."
+                        # Vergleiche Versionen
+                        if [ "$CURRENT_VERSION" = "$LATEST_VERSION" ]; then
+                            SKIP_INSTALL=true
+                            log_info "Cursor ist bereits auf neuester Version ($CURRENT_VERSION)"
+                            echo "✅ Cursor ist bereits aktuell ($CURRENT_VERSION)"
+                            echo "   (Kein Download nötig!)"
                         else
-                            # Finde die tar-Datei (kann .gz, .xz, .bz2 oder unkomprimiert sein)
-                            # ar x extrahiert alle Dateien, wir suchen data.tar.*
-                            TAR_FILE=$(ls data.tar.* 2>/dev/null | head -1)
-                            if [ -z "$TAR_FILE" ]; then
-                                cd "$SCRIPT_DIR" || true
-                                rm -rf "$TEMP_EXTRACT_DIR"
-                                log_warning "Keine data.tar.* Datei gefunden, fahre mit Installation fort..."
-                            else
-                                # Versuche Extraktion mit verschiedenen Kompressionen
-                                # WICHTIG: Pfade müssen mit ./ beginnen (wie im tar-Archiv)
-                                EXTRACT_SUCCESS=false
-                                if [[ "$TAR_FILE" == *.gz ]]; then
-                                    tar -xzf "$TAR_FILE" ./usr/share/cursor/resources/app/package.json 2>/dev/null || tar -xzf "$TAR_FILE" ./opt/cursor/resources/app/package.json 2>/dev/null
-                                    EXTRACT_SUCCESS=$?
-                                elif [[ "$TAR_FILE" == *.xz ]]; then
-                                    tar -xJf "$TAR_FILE" ./usr/share/cursor/resources/app/package.json 2>/dev/null || tar -xJf "$TAR_FILE" ./opt/cursor/resources/app/package.json 2>/dev/null
-                                    EXTRACT_SUCCESS=$?
-                                elif [[ "$TAR_FILE" == *.bz2 ]]; then
-                                    tar -xjf "$TAR_FILE" ./usr/share/cursor/resources/app/package.json 2>/dev/null || tar -xjf "$TAR_FILE" ./opt/cursor/resources/app/package.json 2>/dev/null
-                                    EXTRACT_SUCCESS=$?
+                            log_info "Update verfügbar: $CURRENT_VERSION → $LATEST_VERSION"
+                            echo "🔄 Update verfügbar: $CURRENT_VERSION → $LATEST_VERSION"
+                            # Download wird jetzt durchgeführt
+                            log_info "Lade Cursor .deb von: $DOWNLOAD_URL"
+                            echo "⬇️  Lade Cursor .deb..."
+                            
+                            if download_with_retry "$DOWNLOAD_URL" "$DEB_FILE"; then
+                                if [[ -f "$DEB_FILE" ]] && [[ $(stat -c%s "$DEB_FILE") -gt 50000000 ]]; then
+                                    DEB_SIZE=$(du -h "$DEB_FILE" | cut -f1)
+                                    log_success "Download erfolgreich: $DEB_SIZE"
+                                    echo "✅ Download erfolgreich: $DEB_SIZE"
                                 else
-                                    tar -xf "$TAR_FILE" ./usr/share/cursor/resources/app/package.json 2>/dev/null || tar -xf "$TAR_FILE" ./opt/cursor/resources/app/package.json 2>/dev/null
-                                    EXTRACT_SUCCESS=$?
+                                    log_error "Download zu klein oder fehlgeschlagen!"
+                                    echo "❌ Download fehlgeschlagen!"
+                                    rm -f "$DEB_FILE"
+                                    SKIP_INSTALL=true
                                 fi
+                            else
+                                log_error "Cursor-Download fehlgeschlagen!"
+                                echo "❌ Download fehlgeschlagen!"
+                                rm -f "$DEB_FILE"
+                                SKIP_INSTALL=true
+                            fi
+                        fi
+                    else
+                        log_warning "Version konnte nicht aus Location-Header extrahiert werden, fahre mit Download fort..."
+                        echo "⬇️  Lade Cursor .deb für Versionsprüfung..."
+                        
+                        if download_with_retry "$DOWNLOAD_URL" "$DEB_FILE"; then
+                            if [[ -f "$DEB_FILE" ]] && [[ $(stat -c%s "$DEB_FILE") -gt 50000000 ]]; then
+                                DEB_SIZE=$(du -h "$DEB_FILE" | cut -f1)
+                                log_success "Download erfolgreich: $DEB_SIZE"
+                                echo "✅ Download erfolgreich: $DEB_SIZE"
                                 
-                                if [ $EXTRACT_SUCCESS -eq 0 ]; then
-                                    PACKAGE_JSON=""
-                                    # Prüfe zuerst usr/share/cursor (häufigster Pfad)
-                                    if [ -f "usr/share/cursor/resources/app/package.json" ]; then
-                                        PACKAGE_JSON="usr/share/cursor/resources/app/package.json"
-                                    elif [ -f "opt/cursor/resources/app/package.json" ]; then
-                                        PACKAGE_JSON="opt/cursor/resources/app/package.json"
-                                    fi
-                                    
-                                    if [ -n "$PACKAGE_JSON" ] && [ -f "$PACKAGE_JSON" ]; then
-                                        LATEST_VERSION=$(grep -oP '"version":\s*"\K[0-9.]+' "$PACKAGE_JSON" 2>/dev/null | head -1 || echo "")
+                                # Extrahiere Version aus .deb (Fallback-Methode)
+                                TEMP_EXTRACT_DIR=$(mktemp -d -t cursor-version-check.XXXXXXXXXX)
+                                if ! cd "$TEMP_EXTRACT_DIR" 2>/dev/null; then
+                                    log_warning "Konnte nicht in temporäres Verzeichnis wechseln, fahre mit Installation fort..."
+                                    rm -rf "$TEMP_EXTRACT_DIR"
+                                elif ! ar x "$DEB_FILE" 2>/dev/null; then
+                                    cd "$SCRIPT_DIR" || true
+                                    rm -rf "$TEMP_EXTRACT_DIR"
+                                    log_warning "Fehler beim Extrahieren der .deb-Datei, fahre mit Installation fort..."
+                                else
+                                    # Finde die tar-Datei (kann .gz, .xz, .bz2 oder unkomprimiert sein)
+                                    TAR_FILE=$(ls data.tar.* 2>/dev/null | head -1)
+                                    if [ -z "$TAR_FILE" ]; then
                                         cd "$SCRIPT_DIR" || true
                                         rm -rf "$TEMP_EXTRACT_DIR"
+                                        log_warning "Keine data.tar.* Datei gefunden, fahre mit Installation fort..."
+                                    else
+                                        # Versuche Extraktion mit verschiedenen Kompressionen
+                                        EXTRACT_SUCCESS=false
+                                        if [[ "$TAR_FILE" == *.gz ]]; then
+                                            tar -xzf "$TAR_FILE" ./usr/share/cursor/resources/app/package.json 2>/dev/null || tar -xzf "$TAR_FILE" ./opt/cursor/resources/app/package.json 2>/dev/null
+                                            EXTRACT_SUCCESS=$?
+                                        elif [[ "$TAR_FILE" == *.xz ]]; then
+                                            tar -xJf "$TAR_FILE" ./usr/share/cursor/resources/app/package.json 2>/dev/null || tar -xJf "$TAR_FILE" ./opt/cursor/resources/app/package.json 2>/dev/null
+                                            EXTRACT_SUCCESS=$?
+                                        elif [[ "$TAR_FILE" == *.bz2 ]]; then
+                                            tar -xjf "$TAR_FILE" ./usr/share/cursor/resources/app/package.json 2>/dev/null || tar -xjf "$TAR_FILE" ./opt/cursor/resources/app/package.json 2>/dev/null
+                                            EXTRACT_SUCCESS=$?
+                                        else
+                                            tar -xf "$TAR_FILE" ./usr/share/cursor/resources/app/package.json 2>/dev/null || tar -xf "$TAR_FILE" ./opt/cursor/resources/app/package.json 2>/dev/null
+                                            EXTRACT_SUCCESS=$?
+                                        fi
                                         
-                                        if [ -n "$LATEST_VERSION" ]; then
-                                            log_info "Neueste verfügbare Version: $LATEST_VERSION"
-                                            echo "📌 Verfügbare Version: $LATEST_VERSION"
+                                        if [ $EXTRACT_SUCCESS -eq 0 ]; then
+                                            PACKAGE_JSON=""
+                                            if [ -f "usr/share/cursor/resources/app/package.json" ]; then
+                                                PACKAGE_JSON="usr/share/cursor/resources/app/package.json"
+                                            elif [ -f "opt/cursor/resources/app/package.json" ]; then
+                                                PACKAGE_JSON="opt/cursor/resources/app/package.json"
+                                            fi
                                             
-                                            # Vergleiche Versionen
-                                            if [ "$CURRENT_VERSION" = "$LATEST_VERSION" ]; then
-                                                SKIP_INSTALL=true
-                                                log_info "Cursor ist bereits auf neuester Version ($CURRENT_VERSION)"
-                                                echo "✅ Cursor ist bereits aktuell ($CURRENT_VERSION)"
-                                                rm -f "$DEB_FILE"
+                                            if [ -n "$PACKAGE_JSON" ] && [ -f "$PACKAGE_JSON" ]; then
+                                                LATEST_VERSION=$(grep -oP '"version":\s*"\K[0-9.]+' "$PACKAGE_JSON" 2>/dev/null | head -1 || echo "")
+                                                cd "$SCRIPT_DIR" || true
+                                                rm -rf "$TEMP_EXTRACT_DIR"
+                                                
+                                                if [ -n "$LATEST_VERSION" ]; then
+                                                    log_info "Neueste verfügbare Version (aus .deb): $LATEST_VERSION"
+                                                    echo "📌 Verfügbare Version: $LATEST_VERSION"
+                                                    
+                                                    # Vergleiche Versionen
+                                                    if [ "$CURRENT_VERSION" = "$LATEST_VERSION" ]; then
+                                                        SKIP_INSTALL=true
+                                                        log_info "Cursor ist bereits auf neuester Version ($CURRENT_VERSION)"
+                                                        echo "✅ Cursor ist bereits aktuell ($CURRENT_VERSION)"
+                                                        rm -f "$DEB_FILE"
+                                                    else
+                                                        log_info "Update verfügbar: $CURRENT_VERSION → $LATEST_VERSION"
+                                                        echo "🔄 Update verfügbar: $CURRENT_VERSION → $LATEST_VERSION"
+                                                    fi
+                                                else
+                                                    log_warning "Version konnte nicht aus package.json extrahiert werden, fahre mit Installation fort..."
+                                                fi
                                             else
-                                                log_info "Update verfügbar: $CURRENT_VERSION → $LATEST_VERSION"
-                                                echo "🔄 Update verfügbar: $CURRENT_VERSION → $LATEST_VERSION"
+                                                cd "$SCRIPT_DIR" || true
+                                                rm -rf "$TEMP_EXTRACT_DIR"
+                                                log_warning "package.json nicht in .deb gefunden, fahre mit Installation fort..."
                                             fi
                                         else
-                                            log_warning "Version konnte nicht aus package.json extrahiert werden, fahre mit Installation fort..."
+                                            cd "$SCRIPT_DIR" || true
+                                            rm -rf "$TEMP_EXTRACT_DIR"
+                                            log_warning "Fehler beim Extrahieren der tar-Datei, fahre mit Installation fort..."
+                                        fi
+                                    fi
+                                    cd "$SCRIPT_DIR" || true
+                                fi
+                            else
+                                log_error "Download zu klein oder fehlgeschlagen!"
+                                echo "❌ Download fehlgeschlagen!"
+                                rm -f "$DEB_FILE"
+                                SKIP_INSTALL=true
+                            fi
+                        else
+                            log_error "Cursor-Download fehlgeschlagen!"
+                            echo "❌ Download fehlgeschlagen!"
+                            rm -f "$DEB_FILE"
+                            SKIP_INSTALL=true
+                        fi
+                    fi
+                else
+                    log_warning "HTTP HEAD Request fehlgeschlagen, fahre mit Download fort..."
+                    echo "⬇️  Lade Cursor .deb für Versionsprüfung..."
+                    
+                    if download_with_retry "$DOWNLOAD_URL" "$DEB_FILE"; then
+                        if [[ -f "$DEB_FILE" ]] && [[ $(stat -c%s "$DEB_FILE") -gt 50000000 ]]; then
+                            DEB_SIZE=$(du -h "$DEB_FILE" | cut -f1)
+                            log_success "Download erfolgreich: $DEB_SIZE"
+                            echo "✅ Download erfolgreich: $DEB_SIZE"
+                            
+                            # Extrahiere Version aus .deb (Fallback)
+                            TEMP_EXTRACT_DIR=$(mktemp -d -t cursor-version-check.XXXXXXXXXX)
+                            if ! cd "$TEMP_EXTRACT_DIR" 2>/dev/null; then
+                                log_warning "Konnte nicht in temporäres Verzeichnis wechseln, fahre mit Installation fort..."
+                                rm -rf "$TEMP_EXTRACT_DIR"
+                            elif ! ar x "$DEB_FILE" 2>/dev/null; then
+                                cd "$SCRIPT_DIR" || true
+                                rm -rf "$TEMP_EXTRACT_DIR"
+                                log_warning "Fehler beim Extrahieren der .deb-Datei, fahre mit Installation fort..."
+                            else
+                                TAR_FILE=$(ls data.tar.* 2>/dev/null | head -1)
+                                if [ -z "$TAR_FILE" ]; then
+                                    cd "$SCRIPT_DIR" || true
+                                    rm -rf "$TEMP_EXTRACT_DIR"
+                                    log_warning "Keine data.tar.* Datei gefunden, fahre mit Installation fort..."
+                                else
+                                    EXTRACT_SUCCESS=false
+                                    if [[ "$TAR_FILE" == *.gz ]]; then
+                                        tar -xzf "$TAR_FILE" ./usr/share/cursor/resources/app/package.json 2>/dev/null || tar -xzf "$TAR_FILE" ./opt/cursor/resources/app/package.json 2>/dev/null
+                                        EXTRACT_SUCCESS=$?
+                                    elif [[ "$TAR_FILE" == *.xz ]]; then
+                                        tar -xJf "$TAR_FILE" ./usr/share/cursor/resources/app/package.json 2>/dev/null || tar -xJf "$TAR_FILE" ./opt/cursor/resources/app/package.json 2>/dev/null
+                                        EXTRACT_SUCCESS=$?
+                                    elif [[ "$TAR_FILE" == *.bz2 ]]; then
+                                        tar -xjf "$TAR_FILE" ./usr/share/cursor/resources/app/package.json 2>/dev/null || tar -xjf "$TAR_FILE" ./opt/cursor/resources/app/package.json 2>/dev/null
+                                        EXTRACT_SUCCESS=$?
+                                    else
+                                        tar -xf "$TAR_FILE" ./usr/share/cursor/resources/app/package.json 2>/dev/null || tar -xf "$TAR_FILE" ./opt/cursor/resources/app/package.json 2>/dev/null
+                                        EXTRACT_SUCCESS=$?
+                                    fi
+                                    
+                                    if [ $EXTRACT_SUCCESS -eq 0 ]; then
+                                        PACKAGE_JSON=""
+                                        if [ -f "usr/share/cursor/resources/app/package.json" ]; then
+                                            PACKAGE_JSON="usr/share/cursor/resources/app/package.json"
+                                        elif [ -f "opt/cursor/resources/app/package.json" ]; then
+                                            PACKAGE_JSON="opt/cursor/resources/app/package.json"
+                                        fi
+                                        
+                                        if [ -n "$PACKAGE_JSON" ] && [ -f "$PACKAGE_JSON" ]; then
+                                            LATEST_VERSION=$(grep -oP '"version":\s*"\K[0-9.]+' "$PACKAGE_JSON" 2>/dev/null | head -1 || echo "")
+                                            cd "$SCRIPT_DIR" || true
+                                            rm -rf "$TEMP_EXTRACT_DIR"
+                                            
+                                            if [ -n "$LATEST_VERSION" ]; then
+                                                log_info "Neueste verfügbare Version (aus .deb): $LATEST_VERSION"
+                                                echo "📌 Verfügbare Version: $LATEST_VERSION"
+                                                
+                                                if [ "$CURRENT_VERSION" = "$LATEST_VERSION" ]; then
+                                                    SKIP_INSTALL=true
+                                                    log_info "Cursor ist bereits auf neuester Version ($CURRENT_VERSION)"
+                                                    echo "✅ Cursor ist bereits aktuell ($CURRENT_VERSION)"
+                                                    rm -f "$DEB_FILE"
+                                                else
+                                                    log_info "Update verfügbar: $CURRENT_VERSION → $LATEST_VERSION"
+                                                    echo "🔄 Update verfügbar: $CURRENT_VERSION → $LATEST_VERSION"
+                                                fi
+                                            else
+                                                log_warning "Version konnte nicht aus package.json extrahiert werden, fahre mit Installation fort..."
+                                            fi
+                                        else
+                                            cd "$SCRIPT_DIR" || true
+                                            rm -rf "$TEMP_EXTRACT_DIR"
+                                            log_warning "package.json nicht in .deb gefunden, fahre mit Installation fort..."
                                         fi
                                     else
                                         cd "$SCRIPT_DIR" || true
                                         rm -rf "$TEMP_EXTRACT_DIR"
-                                        log_warning "package.json nicht in .deb gefunden, fahre mit Installation fort..."
+                                        log_warning "Fehler beim Extrahieren der tar-Datei, fahre mit Installation fort..."
                                     fi
-                                else
-                                    cd "$SCRIPT_DIR" || true
-                                    rm -rf "$TEMP_EXTRACT_DIR"
-                                    log_warning "Fehler beim Extrahieren der tar-Datei, fahre mit Installation fort..."
                                 fi
+                                cd "$SCRIPT_DIR" || true
                             fi
-                            # WICHTIG: Zurück zum Script-Verzeichnis
-                            cd "$SCRIPT_DIR" || true
+                        else
+                            log_error "Download zu klein oder fehlgeschlagen!"
+                            echo "❌ Download fehlgeschlagen!"
+                            rm -f "$DEB_FILE"
+                            SKIP_INSTALL=true
                         fi
                     else
-                        log_error "Download zu klein oder fehlgeschlagen!"
+                        log_error "Cursor-Download fehlgeschlagen!"
                         echo "❌ Download fehlgeschlagen!"
                         rm -f "$DEB_FILE"
                         SKIP_INSTALL=true
                     fi
-                else
-                    log_error "Cursor-Download fehlgeschlagen!"
-                    echo "❌ Download fehlgeschlagen!"
-                    rm -f "$DEB_FILE"
-                    SKIP_INSTALL=true
                 fi
             else
                 log_warning "Cursor-Version konnte nicht ermittelt werden, fahre mit Update fort..."
