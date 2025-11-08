@@ -44,7 +44,9 @@ Ein Bash-Script für CachyOS Linux, das mit einem Klick mehrere Komponenten aktu
   - curl oder wget (Downloads)
   - Optional: notify-send (Desktop-Benachrichtigungen)
 - **Struktur:**
+  - `setup.sh` - Setup-Script für Erstinstallation (v2.7.5+)
   - `update-all.sh` - Hauptscript
+  - `create-desktop-shortcut.sh` - Helper-Script für Desktop-Verknüpfungen
   - `lib/` - Module (statistics, progress, interactive)
   - `config.conf` - Konfiguration
   - `logs/` - Log-Dateien
@@ -72,12 +74,12 @@ Ein Bash-Script für CachyOS Linux, das mit einem Klick mehrere Komponenten aktu
 
 ## Aktuelle Version
 
-**2.7.4**
+**2.7.5**
 
 Letzte größere Änderungen:
-- Cache-System komplett entfernt (Einfachheit über Komplexität)
-- Cursor-Version wird jetzt aus package.json gelesen (zuverlässig)
-- Desktop-Datei verwendet absoluten Pfad (funktioniert zuverlässig)
-- ShellCheck-Warnungen behoben (SC2155, SC2034, SC2221/SC2222)
-- Syntaxfehler behoben (readonly-Variablen korrekt deklariert)
-- Dokumentation aktualisiert (Rules, Context, Improvements)
+- Setup-Script (`setup.sh`) für Erstinstallation hinzugefügt
+- Cursor `--version` Aufrufe komplett entfernt (öffnete Cursor ungewollt)
+- Versionsprüfung nur noch über package.json (mit Fallback für alternative Pfade)
+- Desktop-Verknüpfung unterstützt jetzt Update-Modi (--dry-run, --interactive, --auto)
+- GitHub Actions Version-Check funktioniert korrekt
+- Dokumentation aktualisiert (README, Rules, Context, Improvements)

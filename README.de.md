@@ -205,27 +205,47 @@ Du hast zwei Optionen:
    cd ~/Downloads/cachyos-multi-updater-main
    ```
 
-### Schritt 2: Script ausführbar machen
+### Schritt 2: Setup-Script ausführen (empfohlen für Erstinstallation)
 
-**Was bedeutet "ausführbar"?** Es bedeutet, dass die Datei als Programm ausgeführt werden kann. Standardmäßig sind heruntergeladene Scripts aus Sicherheitsgründen möglicherweise nicht ausführbar.
+**Der einfachste Weg zum Starten!** Das Setup-Script führt dich durch die Konfiguration.
 
-1. Im Terminal (stelle sicher, dass du im Script-Ordner bist), tippe:
+1. Setup-Script ausführbar machen:
+   ```bash
+   chmod +x setup.sh
+   ```
+
+2. Setup-Script ausführen:
+   ```bash
+   ./setup.sh
+   ```
+
+3. Das Setup-Script wird:
+   - Nach Update-Modus fragen (--dry-run, --interactive oder --auto)
+   - Fragen ob Desktop-Verknüpfung erstellt werden soll
+   - Desktop-Verknüpfung mit gewählten Optionen erstellen
+   - Update-Script automatisch starten
+
+**Alternative: Manuelle Einrichtung**
+
+Falls du es lieber manuell einrichten möchtest:
+
+1. Script ausführbar machen:
    ```bash
    chmod +x update-all.sh
    ```
 
-2. Überprüfe, ob es funktioniert hat:
+2. Überprüfe ob es funktioniert hat:
    ```bash
    ls -l update-all.sh
    ```
    Du solltest etwas wie `-rwxr-xr-x` sehen - das `x` bedeutet, dass es ausführbar ist.
 
-**Was, wenn ich "Permission denied" bekomme?**
+**Was wenn ich "Permission denied" bekomme?**
 - Stelle sicher, dass du im richtigen Verzeichnis bist
 - Versuche: `chmod 755 update-all.sh`
 - Wenn es immer noch nicht funktioniert, musst du möglicherweise `sudo` verwenden (aber das ist ungewöhnlich)
 
-### Schritt 3: Script testen (optional, aber empfohlen)
+### Schritt 3: Script testen (optional aber empfohlen)
 
 Bevor du es wirklich verwendest, teste, ob es funktioniert:
 

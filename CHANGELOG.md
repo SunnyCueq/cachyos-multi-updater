@@ -5,6 +5,24 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/),
 und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [2.7.5] - 2025-11-08
+
+### Hinzugefügt
+- **🛠️ Setup-Script:** `setup.sh` für Erstinstallation mit interaktiver Konfiguration
+  - Fragt nach Update-Modus (--dry-run, --interactive, --auto)
+  - Erstellt Desktop-Verknüpfung mit gewählten Optionen
+  - Startet update-all.sh mit passenden Parametern
+
+### Behoben
+- **🐛 Cursor --version:** Alle `cursor --version` Aufrufe entfernt (öffnete Cursor ungewollt)
+  - Versionsprüfung nur noch über package.json
+  - Fallback für alternative Installationspfade
+- **🐛 GitHub Actions:** Version-Check funktioniert jetzt korrekt
+
+### Verbessert
+- **📝 Dokumentation:** README, Rules, Context aktualisiert
+- **🔧 Desktop-Verknüpfung:** create-desktop-shortcut.sh unterstützt jetzt Update-Modi
+
 ## [2.7.4] - 2025-11-08
 
 ### Behoben

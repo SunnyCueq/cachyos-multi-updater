@@ -7,6 +7,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_PATH="$SCRIPT_DIR/update-all.sh"
 DESKTOP_FILE="$SCRIPT_DIR/update-all.desktop"
 TARGET_DIR="${1:-$HOME/Schreibtisch}"
+UPDATE_MODE="${2:-}"  # Optional: --dry-run, --interactive, --auto
 
 # Prüfe ob Script existiert
 if [ ! -f "$SCRIPT_PATH" ]; then
@@ -18,11 +19,19 @@ fi
 # WICHTIG: Terminal explizit öffnen und Script darin ausführen
 # Für KDE/Plasma: konsole -e
 # Fallback: xterm oder gnome-terminal
+
+# Baue Exec-String mit optionalem Update-Modus
+if [ -n "$UPDATE_MODE" ]; then
+    EXEC_CMD="konsole -e bash -c \"$SCRIPT_PATH $UPDATE_MODE; echo ''; echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'; read -p 'Drücke Enter zum Beenden...'\""
+else
+    EXEC_CMD="konsole -e bash -c \"$SCRIPT_PATH; echo ''; echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'; read -p 'Drücke Enter zum Beenden...'\""
+fi
+
 cat > "$DESKTOP_FILE" <<EOF
 [Desktop Entry]
 Name=Update All
 Comment=Ein-Klick-Update für CachyOS + AUR + Cursor + AdGuard
-Exec=konsole -e bash -c "$SCRIPT_PATH; echo ''; echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'; read -p 'Drücke Enter zum Beenden...'"
+Exec=$EXEC_CMD
 Icon=system-software-update
 Terminal=false
 Type=Application

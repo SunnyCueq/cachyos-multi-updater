@@ -201,11 +201,31 @@ You have two options:
    cd ~/Downloads/cachyos-multi-updater-main
    ```
 
-### Step 2: Make the script executable
+### Step 2: Run the setup script (recommended for first-time installation)
 
-**What does "executable" mean?** It means the file can be run as a program. By default, downloaded scripts might not be executable for security reasons.
+**The easiest way to get started!** The setup script will guide you through the configuration.
 
-1. In the terminal (make sure you're in the script folder), type:
+1. Make the setup script executable:
+   ```bash
+   chmod +x setup.sh
+   ```
+
+2. Run the setup script:
+   ```bash
+   ./setup.sh
+   ```
+
+3. The setup script will:
+   - Ask you to choose an update mode (--dry-run, --interactive, or --auto)
+   - Ask if you want to create a desktop shortcut
+   - Create the desktop shortcut with your chosen options
+   - Start the update script automatically
+
+**Alternative: Manual setup**
+
+If you prefer to set up manually:
+
+1. Make the script executable:
    ```bash
    chmod +x update-all.sh
    ```

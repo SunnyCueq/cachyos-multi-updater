@@ -604,7 +604,13 @@ if [ "$UPDATE_CURSOR" = "true" ]; then
     
     if [ "$DRY_RUN" = "true" ]; then
         if command -v cursor >/dev/null 2>&1; then
-            CURRENT_VERSION=$(cursor --version 2>/dev/null | grep -oP '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "unbekannt")
+            # Versuche package.json zu finden (ohne cursor --version aufzurufen!)
+            CURSOR_PATH=$(which cursor)
+            CURSOR_INSTALL_DIR=$(dirname "$(readlink -f "$CURSOR_PATH")")
+            CURRENT_VERSION="unbekannt"
+            if [ -f "$CURSOR_INSTALL_DIR/resources/app/package.json" ]; then
+                CURRENT_VERSION=$(grep -oP '"version":\s*"\K[0-9.]+' "$CURSOR_INSTALL_DIR/resources/app/package.json" 2>/dev/null | head -1 || echo "unbekannt")
+            fi
             log_info "[DRY-RUN] Aktuelle Cursor-Version: $CURRENT_VERSION"
             log_info "[DRY-RUN] Würde Cursor herunterladen und aktualisieren"
             echo "🔍 [DRY-RUN] Cursor-Update würde durchgeführt"
@@ -631,19 +637,21 @@ if [ "$UPDATE_CURSOR" = "true" ]; then
             log_info "Cursor gefunden in: $CURSOR_INSTALL_DIR"
             echo "📍 Installationspfad: $CURSOR_INSTALL_DIR"
             
-            # Aktuelle Version ermitteln (versuche verschiedene Methoden)
+            # Aktuelle Version ermitteln (nur package.json - --version öffnet Cursor!)
             CURRENT_VERSION=""
-            # Methode 1: package.json (zuverlässigste Methode)
+            # Methode 1: package.json (zuverlässigste Methode, öffnet Cursor nicht)
             if [ -f "$CURSOR_INSTALL_DIR/resources/app/package.json" ]; then
                 CURRENT_VERSION=$(grep -oP '"version":\s*"\K[0-9.]+' "$CURSOR_INSTALL_DIR/resources/app/package.json" 2>/dev/null | head -1 || echo "")
             fi
-            # Methode 2: cursor --version
+            # Fallback: Prüfe alternative Pfade (falls Cursor anders installiert)
             if [ -z "$CURRENT_VERSION" ]; then
-                CURRENT_VERSION=$(cursor --version 2>/dev/null | grep -oP '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "")
-            fi
-            # Methode 3: Direkter Aufruf der Binary
-            if [ -z "$CURRENT_VERSION" ] && [ -f "$CURSOR_INSTALL_DIR/cursor" ]; then
-                CURRENT_VERSION=$("$CURSOR_INSTALL_DIR/cursor" --version 2>/dev/null | grep -oP '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "")
+                # Versuche andere mögliche Pfade
+                for alt_path in "/opt/Cursor/resources/app/package.json" "/usr/share/cursor/resources/app/package.json" "$HOME/.local/share/cursor/resources/app/package.json"; do
+                    if [ -f "$alt_path" ]; then
+                        CURRENT_VERSION=$(grep -oP '"version":\s*"\K[0-9.]+' "$alt_path" 2>/dev/null | head -1 || echo "")
+                        [ -n "$CURRENT_VERSION" ] && break
+                    fi
+                done
             fi
             if [ -z "$CURRENT_VERSION" ]; then
                 CURRENT_VERSION="unbekannt"
@@ -757,9 +765,12 @@ if [ "$UPDATE_CURSOR" = "true" ]; then
                             log_info "Temporäre Dateien gelöscht"
 
                             if [ "$install_success" = "true" ]; then
-                                # Neue Version prüfen
+                                # Neue Version prüfen (nur package.json - --version öffnet Cursor!)
                                 sleep 1
-                                NEW_VERSION=$(cursor --version 2>/dev/null | grep -oP '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "installiert")
+                                NEW_VERSION="installiert"
+                                if [ -f "$CURSOR_INSTALL_DIR/resources/app/package.json" ]; then
+                                    NEW_VERSION=$(grep -oP '"version":\s*"\K[0-9.]+' "$CURSOR_INSTALL_DIR/resources/app/package.json" 2>/dev/null | head -1 || echo "installiert")
+                                fi
                                 CURSOR_UPDATED=true
                                 log_success "Cursor updated: $CURRENT_VERSION → $NEW_VERSION"
                                 echo "✅ Cursor aktualisiert: $CURRENT_VERSION → $NEW_VERSION"
