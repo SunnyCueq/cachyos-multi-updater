@@ -15,14 +15,16 @@ if [ ! -f "$SCRIPT_PATH" ]; then
 fi
 
 # Erstelle Desktop-Datei mit absolutem Pfad
-# WICHTIG: bash -c mit exec und read hält Terminal offen
+# WICHTIG: Terminal explizit öffnen und Script darin ausführen
+# Für KDE/Plasma: konsole -e
+# Fallback: xterm oder gnome-terminal
 cat > "$DESKTOP_FILE" <<EOF
 [Desktop Entry]
 Name=Update All
 Comment=Ein-Klick-Update für CachyOS + AUR + Cursor + AdGuard
-Exec=bash -c "$SCRIPT_PATH; read -p 'Drücke Enter zum Beenden...'"
+Exec=konsole -e bash -c "$SCRIPT_PATH; echo ''; echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'; read -p 'Drücke Enter zum Beenden...'"
 Icon=system-software-update
-Terminal=true
+Terminal=false
 Type=Application
 Categories=System;
 EOF
