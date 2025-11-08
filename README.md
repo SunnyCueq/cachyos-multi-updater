@@ -1226,7 +1226,25 @@ This shows what WOULD be updated without making changes.
 
 ## 📅 Changelog
 
-### Version 2.3.0 (Current)
+### Version 2.4.0 (Current)
+
+**Version check improvements:**
+- Improved version checking (checks both Releases and Tags)
+- Semantic version comparison (like WoltLab: Major.Minor.Patch)
+- Better output format with separators
+- Multiple update options displayed
+- Handles cases where no GitHub Release exists
+
+**Documentation:**
+- Extended desktop icon documentation:
+  - Guide for application menu icon
+  - Guide for desktop icon (visible on desktop)
+  - Detailed icon change instructions
+- New rule: Versioning and release verification
+  - Semantic Versioning like WoltLab
+  - Release checklist after each version
+
+### Version 2.3.0
 
 **Cursor Update improvements:**
 - Added check if Cursor is installed via pacman (skips update if managed by system)

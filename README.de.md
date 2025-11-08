@@ -1235,7 +1235,25 @@ Dies zeigt, was aktualisiert WÜRDE, ohne Änderungen vorzunehmen.
 
 ## 📅 Changelog
 
-### Version 2.3.0 (Aktuell)
+### Version 2.4.0 (Aktuell)
+
+**Versionsprüfung-Verbesserungen:**
+- Verbesserte Versionsprüfung (prüft sowohl Releases als auch Tags)
+- Semantischer Versionsvergleich (wie WoltLab: Major.Minor.Patch)
+- Besseres Output-Format mit Trennern
+- Mehrere Update-Optionen angezeigt
+- Behandelt Fälle, in denen kein GitHub Release existiert
+
+**Dokumentation:**
+- Erweiterte Desktop-Icon-Dokumentation:
+  - Anleitung für Anwendungsmenü-Icon
+  - Anleitung für Desktop-Icon (sichtbar auf Desktop)
+  - Detaillierte Icon-Wechsel-Anleitung
+- Neue Regel: Versionierung und Release-Prüfung
+  - Semantic Versioning wie WoltLab
+  - Release-Checkliste nach jeder Version
+
+### Version 2.3.0
 
 **Cursor-Update-Verbesserungen:**
 - Prüfung ob Cursor über pacman installiert ist (überspringt Update wenn über System verwaltet)
