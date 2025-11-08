@@ -462,6 +462,79 @@ This only updates AdGuard Home. Useful if you just want to update AdGuard withou
 - What commands would be run
 - But NO actual changes are made
 
+#### Interactive mode (choose what to update)
+
+```bash
+./update-all.sh --interactive
+```
+or
+```bash
+./update-all.sh -i
+```
+
+**What is interactive mode?** Interactive mode lets you choose which components to update before the process starts.
+
+**How it works:**
+1. The script asks you for each component (System, AUR, Cursor, AdGuard)
+2. You answer with 'j' (yes) or 'n' (no)
+3. The script shows a summary of your selections
+4. You confirm and the selected updates run
+
+**Example:**
+```
+🎮 INTERAKTIVER MODUS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Welche Komponenten möchtest du aktualisieren?
+
+  [1] System (pacman)?        (J/n): j
+      ✅ System-Updates aktiviert
+  [2] AUR (yay/paru)?         (J/n): n
+      ⏭️  AUR-Updates übersprungen
+  [3] Cursor Editor?          (J/n): j
+      ✅ Cursor-Update aktiviert
+  [4] AdGuard Home?           (J/n): n
+      ⏭️  AdGuard Home-Update übersprungen
+```
+
+**When to use it:**
+- You want more control without using command-line flags
+- You're not sure what needs updating
+- You want to skip certain updates this time
+
+#### Show statistics
+
+```bash
+./update-all.sh --stats
+```
+
+**What are statistics?** The script tracks all your updates and shows useful statistics.
+
+**What you'll see:**
+- Total number of updates performed
+- Success vs. failed updates
+- Success rate percentage
+- Average update duration
+- Last update timestamp
+
+**Example:**
+```
+📊 UPDATE-STATISTIKEN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   Gesamt-Updates:     47
+   Erfolgreich:        45
+   Fehlgeschlagen:     2
+   Erfolgsrate:        95%
+   Durchschn. Dauer:   6m 32s
+   Letztes Update:     08.11.2025 14:30
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+**When to use it:**
+- Check how often you update
+- See if updates are getting slower
+- Track your update success rate
+
 #### Show version
 
 ```bash

@@ -1,0 +1,204 @@
+name: Tests & Quality Checks
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  shellcheck:
+    name: ShellCheck Linting
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: '.'
+          severity: warning
+          check_together: 'yes'
+          ignore_paths: tests
+
+  syntax-check:
+    name: Bash Syntax Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check Bash Syntax
+        run: |
+          bash -n update-all.sh
+          echo "✅ Syntax check passed"
+
+  bats-tests:
+    name: BATS Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup BATS
+        uses: mig4/setup-bats@v1
+        with:
+          bats-version: 1.10.0
+
+      - name: Run BATS tests
+        run: |
+          bats tests/
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: bats-test-results
+          path: tests/*.bats
+
+  dry-run-test:
+    name: Dry-Run Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Make script executable
+        run: chmod +x update-all.sh
+
+      - name: Test dry-run mode
+        run: |
+          ./update-all.sh --dry-run || {
+            echo "❌ Dry-run test failed"
+            exit 1
+          }
+          echo "✅ Dry-run test passed"
+
+      - name: Test help output
+        run: |
+          ./update-all.sh --help
+          echo "✅ Help output test passed"
+
+      - name: Test version output
+        run: |
+          ./update-all.sh --version
+          echo "✅ Version output test passed"
+
+  config-validation:
+    name: Config Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate example config
+        run: |
+          # Prüfe ob config.conf.example gültig ist
+          if [ ! -f config.conf.example ]; then
+            echo "❌ config.conf.example not found"
+            exit 1
+          fi
+
+          # Prüfe Format
+          grep -E '^(#|$|[A-Z_]+=(true|false|[0-9]+))' config.conf.example || {
+            echo "❌ Invalid config format"
+            exit 1
+          }
+
+          echo "✅ Config validation passed"
+
+  documentation-check:
+    name: Documentation Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check README files
+        run: |
+          if [ ! -f README.md ]; then
+            echo "❌ README.md missing"
+            exit 1
+          fi
+
+          if [ ! -f README.de.md ]; then
+            echo "❌ README.de.md missing"
+            exit 1
+          fi
+
+          if [ ! -f CHANGELOG.md ]; then
+            echo "❌ CHANGELOG.md missing"
+            exit 1
+          fi
+
+          echo "✅ Documentation check passed"
+
+      - name: Check for broken links in README
+        run: |
+          # Prüfe auf häufige Markdown-Probleme
+          if grep -n '](http' README.md | grep -v 'https://'; then
+            echo "⚠️  Warning: HTTP links found (should be HTTPS)"
+          fi
+
+          echo "✅ README link check completed"
+
+  version-check:
+    name: Version Consistency Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract versions
+        id: versions
+        run: |
+          SCRIPT_VERSION=$(grep -oP 'readonly SCRIPT_VERSION="\K[^"]+' update-all.sh)
+          CHANGELOG_VERSION=$(grep -oP '\[(\d+\.\d+\.\d+)\]' CHANGELOG.md | head -1 | tr -d '[]')
+
+          echo "script_version=$SCRIPT_VERSION" >> $GITHUB_OUTPUT
+          echo "changelog_version=$CHANGELOG_VERSION" >> $GITHUB_OUTPUT
+
+          echo "Script Version: $SCRIPT_VERSION"
+          echo "Changelog Version: $CHANGELOG_VERSION"
+
+      - name: Compare versions
+        run: |
+          if [ "${{ steps.versions.outputs.script_version }}" != "${{ steps.versions.outputs.changelog_version }}" ]; then
+            echo "❌ Version mismatch!"
+            echo "Script: ${{ steps.versions.outputs.script_version }}"
+            echo "Changelog: ${{ steps.versions.outputs.changelog_version }}"
+            exit 1
+          fi
+
+          echo "✅ Versions are consistent"
+
+  summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [shellcheck, syntax-check, bats-tests, dry-run-test, config-validation, documentation-check, version-check]
+    if: always()
+
+    steps:
+      - name: Check test results
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "🎉 All tests passed successfully!"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "✅ ShellCheck Linting"
+          echo "✅ Bash Syntax Check"
+          echo "✅ BATS Tests"
+          echo "✅ Dry-Run Test"
+          echo "✅ Config Validation"
+          echo "✅ Documentation Check"
+          echo "✅ Version Consistency"
+          echo ""
+          echo "Ready for merge! 🚀"

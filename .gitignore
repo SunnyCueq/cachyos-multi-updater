@@ -13,11 +13,20 @@ cursor-extract/
 # Cache-Verzeichnis
 .cache/
 
+# Snapshot/Rollback-Verzeichnis
+.snapshots/
+
+# Statistiken
+.stats/
+
 # Temporäre AdGuard-Dateien
 /tmp/AdGuardHome-*
 
 # Backup-Verzeichnisse
 *-backup-*
+
+# Fehler-Reports
+error-report-*.txt
 
 # Konfigurationsdateien (User-spezifisch)
 config.conf.local

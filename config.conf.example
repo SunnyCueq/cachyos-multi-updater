@@ -39,3 +39,7 @@ DOWNLOAD_RETRIES=3
 # false = nur Hinweis auf neue Version (Standard)
 ENABLE_AUTO_UPDATE=false
 
+# ========== Cache-Einstellungen ==========
+# Cache-Dauer für Versionschecks in Sekunden (Standard: 3600 = 1 Stunde)
+CACHE_MAX_AGE=3600
+
