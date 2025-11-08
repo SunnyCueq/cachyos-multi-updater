@@ -659,29 +659,44 @@ if [ "$UPDATE_CURSOR" = "true" ]; then
             log_info "Cursor gefunden in: $CURSOR_INSTALL_DIR"
             echo "📍 Installationspfad: $CURSOR_INSTALL_DIR"
             
-            # Aktuelle Version ermitteln
-            CURRENT_VERSION=$(cursor --version 2>/dev/null | grep -oP '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "unbekannt")
+            # Aktuelle Version ermitteln (versuche verschiedene Methoden)
+            CURRENT_VERSION=$(cursor --version 2>/dev/null | grep -oP '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "")
+            if [ -z "$CURRENT_VERSION" ]; then
+                # Versuche alternativen Weg
+                if [ -f "$CURSOR_INSTALL_DIR/cursor" ]; then
+                    CURRENT_VERSION=$("$CURSOR_INSTALL_DIR/cursor" --version 2>/dev/null | grep -oP '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "")
+                fi
+                if [ -z "$CURRENT_VERSION" ]; then
+                    CURRENT_VERSION="unbekannt"
+                fi
+            fi
             log_info "Aktuelle Cursor-Version: $CURRENT_VERSION"
             echo "📌 Aktuelle Version: $CURRENT_VERSION"
             
             # Prüfe neueste verfügbare Version (ohne Download)
-            log_info "Prüfe verfügbare Cursor-Version..."
-            echo "🔍 Prüfe verfügbare Version..."
-            LATEST_VERSION_INFO=$(curl -sL "https://api2.cursor.sh/updates/check?platform=linux-x64-deb&version=$CURRENT_VERSION" 2>/dev/null || echo "")
             SKIP_DOWNLOAD=false
-            if [ -n "$LATEST_VERSION_INFO" ]; then
-                LATEST_VERSION=$(echo "$LATEST_VERSION_INFO" | grep -oP '"version":\s*"\K[0-9.]+' | head -1 || echo "")
-                if [ -n "$LATEST_VERSION" ] && [ "$LATEST_VERSION" != "$CURRENT_VERSION" ]; then
-                    echo "📥 Verfügbare Version: $LATEST_VERSION"
-                    log_info "Neue Version verfügbar: $CURRENT_VERSION → $LATEST_VERSION"
-                elif [ "$LATEST_VERSION" = "$CURRENT_VERSION" ]; then
-                    echo "✅ Cursor ist bereits auf dem neuesten Stand ($CURRENT_VERSION)"
-                    log_info "Cursor ist bereits aktuell, Update übersprungen"
-                    SKIP_DOWNLOAD=true
+            if [ "$CURRENT_VERSION" != "unbekannt" ]; then
+                log_info "Prüfe verfügbare Cursor-Version..."
+                echo "🔍 Prüfe verfügbare Version..."
+                LATEST_VERSION_INFO=$(curl -sL "https://api2.cursor.sh/updates/check?platform=linux-x64-deb&version=$CURRENT_VERSION" 2>/dev/null || echo "")
+                if [ -n "$LATEST_VERSION_INFO" ]; then
+                    LATEST_VERSION=$(echo "$LATEST_VERSION_INFO" | grep -oP '"version":\s*"\K[0-9.]+' | head -1 || echo "")
+                    if [ -n "$LATEST_VERSION" ] && [ "$LATEST_VERSION" != "$CURRENT_VERSION" ]; then
+                        echo "📥 Verfügbare Version: $LATEST_VERSION"
+                        log_info "Neue Version verfügbar: $CURRENT_VERSION → $LATEST_VERSION"
+                    elif [ "$LATEST_VERSION" = "$CURRENT_VERSION" ]; then
+                        echo "✅ Cursor ist bereits auf dem neuesten Stand ($CURRENT_VERSION)"
+                        log_info "Cursor ist bereits aktuell, Update übersprungen"
+                        SKIP_DOWNLOAD=true
+                    else
+                        echo "⚠️  Versionsprüfung fehlgeschlagen, fahre mit Update fort..."
+                        log_warning "Versionsprüfung fehlgeschlagen"
+                    fi
                 else
-                    echo "⚠️  Versionsprüfung fehlgeschlagen, fahre mit Update fort..."
-                    log_warning "Versionsprüfung fehlgeschlagen"
+                    log_warning "Konnte neueste Version nicht abrufen, fahre mit Update fort..."
                 fi
+            else
+                log_warning "Cursor-Version konnte nicht ermittelt werden, fahre mit Update fort..."
             fi
             
             # Überspringe Download wenn bereits aktuell
@@ -788,6 +803,8 @@ if [ "$UPDATE_CURSOR" = "true" ]; then
                                 echo "❌ Installation fehlgeschlagen!"
                             fi
                         fi
+                        # WICHTIG: cd zurück zum Script-Verzeichnis
+                        cd "$SCRIPT_DIR" || true
                     else
                         log_error "Download zu klein oder fehlgeschlagen!"
                         echo "❌ Download zu klein oder fehlgeschlagen!"
@@ -795,7 +812,7 @@ if [ "$UPDATE_CURSOR" = "true" ]; then
                     fi
                 fi
             fi
-            fi
+        fi
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo ""
     fi
