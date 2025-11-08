@@ -5,6 +5,21 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/),
 und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [2.7.4] - 2025-11-08
+
+### Behoben
+- **🐛 Syntaxfehler:** readonly-Variablen korrekt deklariert (SC2155)
+- **🐛 Cursor-Version:** Wird jetzt aus package.json gelesen (zuverlässigste Methode)
+- **🐛 Desktop-Datei:** Verwendet jetzt absoluten Pfad (funktioniert zuverlässig)
+
+### Entfernt
+- **🗑️ Cache-System:** Versions-Cache komplett entfernt (nicht nötig für kleines Tool)
+  - Einfachheit über Komplexität
+  - Script-Update-Check prüft jetzt direkt GitHub ohne Cache
+
+### Verbessert
+- **📝 Dokumentation:** Rules, Context, Improvements aktualisiert
+
 ## [2.7.3] - 2025-11-08
 
 ### Behoben

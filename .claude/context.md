@@ -72,14 +72,12 @@ Ein Bash-Script für CachyOS Linux, das mit einem Klick mehrere Komponenten aktu
 
 ## Aktuelle Version
 
-**2.7.2 (EXPERIMENTELL - NICHT STABIL)**
-
-⚠️ Desktop-Icon funktioniert aktuell NICHT korrekt!
+**2.7.4**
 
 Letzte größere Änderungen:
-- Lock-File Mechanismus entfernt (verursachte Probleme)
-- Desktop-Icon Fix versucht: sudo -v vor Updates (funktioniert noch nicht)
-- ShellCheck SC2155 Warnings behoben
-- Bugfixes: `local` außerhalb von Funktionen, while-loop + set -e Konflikt
-- Cleanup: RELEASE-GUIDE.md entfernt, Changelog aus README verschoben
-- Releases v2.7.1 und v2.7.2 gelöscht (nicht funktionsfähig)
+- Cache-System komplett entfernt (Einfachheit über Komplexität)
+- Cursor-Version wird jetzt aus package.json gelesen (zuverlässig)
+- Desktop-Datei verwendet absoluten Pfad (funktioniert zuverlässig)
+- ShellCheck-Warnungen behoben (SC2155, SC2034, SC2221/SC2222)
+- Syntaxfehler behoben (readonly-Variablen korrekt deklariert)
+- Dokumentation aktualisiert (Rules, Context, Improvements)

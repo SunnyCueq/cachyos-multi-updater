@@ -16,12 +16,12 @@ readonly EXIT_DOWNLOAD_ERROR=3
 readonly EXIT_UPDATE_ERROR=4
 
 # ========== Konfiguration ==========
-readonly SCRIPT_DIR
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-readonly LOG_DIR
+readonly SCRIPT_DIR
 LOG_DIR="$SCRIPT_DIR/logs"
-readonly LOG_FILE
+readonly LOG_DIR
 LOG_FILE="$LOG_DIR/update-$(date +%Y%m%d-%H%M%S).log"
+readonly LOG_FILE
 MAX_LOG_FILES=10
 readonly CONFIG_FILE="$SCRIPT_DIR/config.conf"
 
@@ -45,12 +45,6 @@ ADGUARD_UPDATED=false
 SYSTEM_PACKAGES=0
 AUR_PACKAGES=0
 
-# Cache-Verzeichnis für Versions-Checks
-readonly CACHE_DIR="$SCRIPT_DIR/.cache"
-# VERSION_CACHE_FILE wird derzeit nicht verwendet (Funktionen nutzen ${cache_key}_version.cache)
-# readonly VERSION_CACHE_FILE="$CACHE_DIR/version_cache.json"
-CACHE_MAX_AGE=3600  # 1 Stunde (konfigurierbar)
-
 # Snapshot/Backup-Verzeichnis
 readonly SNAPSHOT_DIR="$SCRIPT_DIR/.snapshots"
 mkdir -p "$SNAPSHOT_DIR"
@@ -62,7 +56,6 @@ mkdir -p "$STATS_DIR"
 
 # Log-Verzeichnis erstellen
 mkdir -p "$LOG_DIR"
-mkdir -p "$CACHE_DIR"
 
 # ========== Config-Validierung ==========
 validate_config_value() {
@@ -76,7 +69,7 @@ validate_config_value() {
                 return 1
             fi
             ;;
-        MAX_LOG_FILES|DOWNLOAD_RETRIES|CACHE_MAX_AGE)
+        MAX_LOG_FILES|DOWNLOAD_RETRIES)
             if [[ ! "$value" =~ ^[0-9]+$ ]]; then
                 echo "WARNUNG: Ungültiger Wert für $key: '$value' (erwartet: Zahl)" >&2
                 return 1
@@ -119,7 +112,6 @@ load_config() {
                 ENABLE_COLORS) ENABLE_COLORS=$(echo "$value" | tr '[:upper:]' '[:lower:]') ;;
                 DOWNLOAD_RETRIES) DOWNLOAD_RETRIES="$value" ;;
                 ENABLE_AUTO_UPDATE) ENABLE_AUTO_UPDATE=$(echo "$value" | tr '[:upper:]' '[:lower:]') ;;
-                CACHE_MAX_AGE) CACHE_MAX_AGE="$value" ;;
             esac
         done < "$CONFIG_FILE" || true
     fi
@@ -478,31 +470,6 @@ download_with_retry() {
             return 1
         fi
     done
-}
-
-# ========== Cache-Funktionen für Versions-Checks ==========
-get_cached_version() {
-    local cache_key="$1"
-    local cache_file="$CACHE_DIR/${cache_key}_version.cache"
-    if [ -f "$cache_file" ]; then
-        local cache_time
-        cache_time=$(head -1 "$cache_file" 2>/dev/null || echo "0")
-        local cached_version
-        cached_version=$(tail -n +2 "$cache_file" 2>/dev/null || echo "")
-        local current_time
-        current_time=$(date +%s)
-        if [ -n "$cached_version" ] && [ $((current_time - cache_time)) -lt $CACHE_MAX_AGE ]; then
-            echo "$cached_version"
-        fi
-    fi
-}
-
-set_cached_version() {
-    local cache_key="$1"
-    local version="$2"
-    local cache_file="$CACHE_DIR/${cache_key}_version.cache"
-    echo "$(date +%s)" > "$cache_file"
-    echo "$version" >> "$cache_file"
 }
 
 # ========== Alte Logs aufräumen ==========
@@ -1051,25 +1018,12 @@ check_script_update() {
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "🔍 Script-Version prüfen..."
     
-    # Prüfe Cache zuerst
-    CACHED_VERSION=$(get_cached_version "script")
+    # Versuche zuerst Releases, dann Tags
+    LATEST_VERSION=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases/latest" 2>/dev/null | grep -oP '"tag_name":\s*"v?\K[0-9.]+' | head -1 || echo "")
     
-    if [ -n "$CACHED_VERSION" ]; then
-        LATEST_VERSION="$CACHED_VERSION"
-        log_info "Verwende gecachte Version: $LATEST_VERSION"
-    else
-        # Versuche zuerst Releases, dann Tags
-        LATEST_VERSION=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases/latest" 2>/dev/null | grep -oP '"tag_name":\s*"v?\K[0-9.]+' | head -1 || echo "")
-        
-        # Falls kein Release, prüfe Tags direkt
-        if [ -z "$LATEST_VERSION" ]; then
-            LATEST_VERSION=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/git/refs/tags" 2>/dev/null | grep -oP '"ref":\s*"refs/tags/v?\K[0-9.]+' | sort -V | tail -1 || echo "")
-        fi
-        
-        # Cache die Version
-        if [ -n "$LATEST_VERSION" ]; then
-            set_cached_version "script" "$LATEST_VERSION"
-        fi
+    # Falls kein Release, prüfe Tags direkt
+    if [ -z "$LATEST_VERSION" ]; then
+        LATEST_VERSION=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/git/refs/tags" 2>/dev/null | grep -oP '"ref":\s*"refs/tags/v?\K[0-9.]+' | sort -V | tail -1 || echo "")
     fi
     
     if [ -z "$LATEST_VERSION" ]; then
