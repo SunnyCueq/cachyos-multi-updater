@@ -80,12 +80,12 @@ This script automatically updates four different things on your system:
 
 **What happens during update?**
 1. The script checks your current Cursor version
-2. Downloads the latest version from Cursor's servers
-3. Safely closes Cursor if it's running
+2. Checks if a newer version is available
+3. Downloads the latest version from Cursor's servers (if needed)
 4. Installs the new version
-5. Restarts Cursor automatically
+5. You can manually restart Cursor if it was running
 
-**Important:** Cursor will be closed during the update. Save your work before running the script!
+**Note:** The script does NOT automatically close or restart Cursor. If Cursor is running, you may want to close it manually before running the update for a clean installation.
 
 ### 4. ✅ AdGuard Home (automatic download and update)
 
@@ -1244,14 +1244,14 @@ There's no "right" frequency - choose what works for you!
 - AUR helpers work the same way
 - Cursor and AdGuard Home updates work identically
 
-### Q: Why does Cursor need to be closed during update?
+### Q: Does the script automatically close and restart Cursor?
 
-**A:** The script needs to replace Cursor's files while it's running. If Cursor is open:
-- Files might be locked
-- The update could fail
-- You might lose unsaved work
+**A:** No, the script does NOT automatically close or restart Cursor. It only:
+- Checks if Cursor is running (shows a warning if it is)
+- Downloads and installs the update
+- You can manually close/restart Cursor if needed
 
-**Always save your work before running the script!**
+**Why?** Automatic closing/restarting can be disruptive. You have full control over when Cursor runs.
 
 ### Q: Will this script break my system?
 

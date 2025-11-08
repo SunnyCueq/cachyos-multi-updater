@@ -81,12 +81,12 @@ Dieses Script aktualisiert automatisch vier verschiedene Dinge auf deinem System
 
 **Was passiert während des Updates?**
 1. Das Script prüft deine aktuelle Cursor-Version
-2. Lädt die neueste Version von Cursors Servern herunter
-3. Schließt Cursor sicher, falls es läuft
+2. Prüft, ob eine neuere Version verfügbar ist
+3. Lädt die neueste Version von Cursors Servern herunter (falls nötig)
 4. Installiert die neue Version
-5. Startet Cursor automatisch neu
+5. Du kannst Cursor manuell neu starten, falls es gelaufen ist
 
-**Wichtig:** Cursor wird während des Updates geschlossen. Speichere deine Arbeit, bevor du das Script ausführst!
+**Hinweis:** Das Script schließt oder startet Cursor NICHT automatisch. Falls Cursor läuft, solltest du es manuell schließen, bevor du das Update ausführst, für eine saubere Installation.
 
 **Hinweis:** Falls Cursor über CachyOS-Repositories aktualisiert wird, kannst du diese Funktion in der Konfiguration deaktivieren.
 
@@ -1251,14 +1251,14 @@ Es gibt keine "richtige" Häufigkeit - wähle, was für dich funktioniert!
 - AUR-Helper funktionieren genauso
 - Cursor- und AdGuard Home-Updates funktionieren identisch
 
-### F: Warum muss Cursor während des Updates geschlossen werden?
+### F: Schließt und startet das Script Cursor automatisch?
 
-**A:** Das Script muss Cursors Dateien ersetzen, während es läuft. Wenn Cursor offen ist:
-- Dateien könnten gesperrt sein
-- Das Update könnte fehlschlagen
-- Du könntest ungespeicherte Arbeit verlieren
+**A:** Nein, das Script schließt oder startet Cursor NICHT automatisch. Es:
+- Prüft nur, ob Cursor läuft (zeigt eine Warnung, falls ja)
+- Lädt und installiert das Update
+- Du kannst Cursor manuell schließen/starten, falls nötig
 
-**Speichere immer deine Arbeit, bevor du das Script ausführst!**
+**Warum?** Automatisches Schließen/Starten kann störend sein. Du hast volle Kontrolle darüber, wann Cursor läuft.
 
 **Hinweis:** Falls Cursor über CachyOS-Repositories aktualisiert wird, ist diese Funktion nicht nötig und kann deaktiviert werden.
 
@@ -1315,6 +1315,21 @@ Wenn du als ZIP heruntergeladen hast, lade die neueste Version von GitHub herunt
 ```
 
 Dies zeigt, was aktualisiert WÜRDE, ohne Änderungen vorzunehmen.
+
+### F: Was ist update-all.1?
+
+**A:** `update-all.1` ist eine **Man-Page** (Manual Page) - ein Standard-Dokumentationsformat für Unix/Linux. Du kannst sie anzeigen mit:
+```bash
+man ./update-all.1
+```
+Oder wenn systemweit installiert:
+```bash
+man update-all
+```
+
+**Was ist eine Man-Page?** Es ist die traditionelle Art, Kommandozeilen-Tools auf Linux/Unix-Systemen zu dokumentieren. Sie bietet prägnante, technische Dokumentation, die Unix-Konventionen folgt.
+
+**Brauche ich sie?** Sie ist optional - die README-Dateien bieten detailliertere, anfängerfreundlichere Dokumentation. Die Man-Page ist nützlich für Benutzer, die mit Unix-Dokumentationsstandards vertraut sind.
 
 ### F: Was, wenn ich ein Problem habe, das nicht in der FAQ abgedeckt ist?
 

@@ -429,34 +429,12 @@ if [ "$UPDATE_CURSOR" = "true" ]; then
                     log_success "Download erfolgreich: $DEB_SIZE"
                     echo "✅ Download erfolgreich: $DEB_SIZE"
                     
-                    # Cursor-Prozesse sicher beenden
-                    log_info "Beende Cursor-Prozesse..."
-                    echo "🔒 Schließe Cursor..."
-                    
-                    # Besseres Cursor-Kill mit pkill
+                    # Cursor-Prozesse prüfen (nicht automatisch schließen)
                     CURSOR_PIDS=$(pgrep -f "cursor" | grep -v "$$" || true)
                     if [ -n "$CURSOR_PIDS" ]; then
-                        log_info "Gefundene Cursor-Prozesse: $CURSOR_PIDS"
-                        # Versuche sanftes Beenden
-                        pkill -TERM -f "cursor" 2>/dev/null || true
-                        
-                        # Warte bis Prozesse beendet sind (max. 10 Sekunden)
-                        for i in {1..10}; do
-                            if ! pgrep -f "cursor" >/dev/null 2>&1; then
-                                log_success "Alle Cursor-Prozesse beendet"
-                                echo "✅ Cursor geschlossen"
-                                break
-                            fi
-                            sleep 1
-                        done
-                        
-                        # Falls noch Prozesse laufen, force kill
-                        if pgrep -f "cursor" >/dev/null 2>&1; then
-                            log_warning "Force-Kill von Cursor-Prozessen..."
-                            echo "⚠️  Force-Kill erforderlich..."
-                            pkill -9 -f "cursor" 2>/dev/null || true
-                            sleep 2
-                        fi
+                        log_warning "Cursor läuft noch - bitte manuell schließen für sauberes Update"
+                        echo "⚠️  Cursor läuft noch - bitte manuell schließen für sauberes Update"
+                        echo "   (Cursor wird nicht automatisch geschlossen)"
                     else
                         log_info "Keine laufenden Cursor-Prozesse gefunden"
                         echo "ℹ️  Cursor läuft nicht"
@@ -521,22 +499,7 @@ if [ "$UPDATE_CURSOR" = "true" ]; then
                             CURSOR_UPDATED=true
                             log_success "Cursor updated: $CURRENT_VERSION → $NEW_VERSION"
                             echo "✅ Cursor aktualisiert: $CURRENT_VERSION → $NEW_VERSION"
-                            
-                            # Cursor neu starten (optional, nicht blockierend)
-                            log_info "Starte Cursor neu..."
-                            echo "🚀 Starte Cursor..."
-                            sleep 1
-                            if command -v cursor >/dev/null 2>&1; then
-                                nohup cursor > /dev/null 2>&1 &
-                                sleep 2
-                                if pgrep -f "cursor" >/dev/null 2>&1; then
-                                    log_success "Cursor gestartet"
-                                    echo "✅ Cursor gestartet"
-                                else
-                                    log_warning "Cursor konnte nicht automatisch gestartet werden (bitte manuell starten)"
-                                    echo "⚠️  Cursor konnte nicht automatisch gestartet werden"
-                                fi
-                            fi
+                            echo "ℹ️  Cursor kann jetzt manuell gestartet werden (falls geschlossen)"
                         else
                             log_error "Cursor-Dateien nicht gefunden im .deb oder Installation fehlgeschlagen!"
                             echo "❌ Installation fehlgeschlagen!"
