@@ -1,6 +1,17 @@
 #!/bin/bash
-# Script zum Erstellen eines GitHub Releases
-# Verwendung: ./create-release.sh v2.6.0
+#
+# CachyOS Multi-Updater - Release Creator
+# Helper script to create GitHub releases
+# Usage: ./create-release.sh v2.6.0
+#
+# Copyright (c) 2024-2025
+# Licensed under the MIT License (see LICENSE file)
+#
+# This is free and open source software (FOSS).
+# You are welcome to modify and distribute it under the terms of the MIT License.
+#
+# Repository: https://github.com/SunnyCueq/cachyos-multi-updater
+#
 
 set -euo pipefail
 

@@ -1,6 +1,17 @@
 #!/bin/bash
-# Wrapper-Script zum Ausführen von update-all.sh mit Terminal offen halten
-# Wird von Desktop-Dateien verwendet
+#
+# CachyOS Multi-Updater - Update Wrapper
+# Wrapper script to execute update-all.sh and keep terminal open
+# Used by desktop files for reliable terminal persistence
+#
+# Copyright (c) 2024-2025
+# Licensed under the MIT License (see LICENSE file)
+#
+# This is free and open source software (FOSS).
+# You are welcome to modify and distribute it under the terms of the MIT License.
+#
+# Repository: https://github.com/SunnyCueq/cachyos-multi-updater
+#
 
 set -euo pipefail
 

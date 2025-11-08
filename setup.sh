@@ -1,6 +1,16 @@
 #!/bin/bash
-# Setup-Script für CachyOS Multi-Updater
-# Erstellt Desktop-Verknüpfung und startet update-all.sh mit gewählten Optionen
+#
+# CachyOS Multi-Updater - Setup Script
+# Interactive setup script for first-time installation
+#
+# Copyright (c) 2024-2025
+# Licensed under the MIT License (see LICENSE file)
+#
+# This is free and open source software (FOSS).
+# You are welcome to modify and distribute it under the terms of the MIT License.
+#
+# Repository: https://github.com/SunnyCueq/cachyos-multi-updater
+#
 
 set -euo pipefail
 
