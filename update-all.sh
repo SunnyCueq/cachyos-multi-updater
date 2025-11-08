@@ -535,7 +535,7 @@ if [ "$UPDATE_SYSTEM" = "true" ]; then
     echo "📦 CachyOS-Repos updaten..."
 
     if [ "$DRY_RUN" = "true" ]; then
-        local packages_available=$(pacman -Qu 2>/dev/null | wc -l || echo "0")
+        packages_available=$(pacman -Qu 2>/dev/null | wc -l || echo "0")
         log_info "[DRY-RUN] Verfügbare Updates: $packages_available Pakete"
         log_info "[DRY-RUN] Würde ausführen: sudo pacman -Syu --noconfirm"
         echo "🔍 [DRY-RUN] System-Update würde durchgeführt ($packages_available Pakete)"
@@ -687,7 +687,7 @@ if [ "$UPDATE_CURSOR" = "true" ]; then
                     
                     # Cursor-Prozesse prüfen (nicht automatisch schließen)
                     # Verwende -x für exact match, verhindert false positives
-                    local cursor_pids=$(pgrep -x "cursor" 2>/dev/null || pgrep -x "Cursor" 2>/dev/null || true)
+                    cursor_pids=$(pgrep -x "cursor" 2>/dev/null || pgrep -x "Cursor" 2>/dev/null || true)
                     if [ -n "$cursor_pids" ]; then
                         log_warning "Cursor läuft noch (PID: $cursor_pids) - bitte manuell schließen für sauberes Update"
                         echo "⚠️  Cursor läuft noch (PID: $cursor_pids)"
@@ -699,7 +699,7 @@ if [ "$UPDATE_CURSOR" = "true" ]; then
                     fi
                     
                     # Extrahiere .deb
-                    local extract_dir=$(mktemp -d -t cursor-extract.XXXXXXXXXX)
+                    extract_dir=$(mktemp -d -t cursor-extract.XXXXXXXXXX)
                     trap "rm -rf '$extract_dir' '$DEB_FILE'" EXIT
                     
                     log_info "Extrahiere Cursor .deb..."
@@ -718,7 +718,7 @@ if [ "$UPDATE_CURSOR" = "true" ]; then
                         exit $EXIT_DOWNLOAD_ERROR
                     else
                         # Finde Cursor-Binary und Ressourcen
-                        local install_success=false
+                        install_success=false
 
                         if [[ -d "opt/Cursor" ]]; then
                             log_info "Installiere Cursor-Update (opt/Cursor)..."
@@ -783,13 +783,13 @@ if [ "$UPDATE_ADGUARD" = "true" ]; then
 
     log_info "Starte AdGuardHome-Update..."
     echo "🛡️ AdGuardHome updaten..."
-    local agh_dir="$HOME/AdGuardHome"
-    local temp_dir=$(mktemp -d -t adguard-update.XXXXXXXXXX)
+    agh_dir="$HOME/AdGuardHome"
+    temp_dir=$(mktemp -d -t adguard-update.XXXXXXXXXX)
     trap "rm -rf '$temp_dir'" EXIT
     
     if [ "$DRY_RUN" = "true" ]; then
         if [[ -f "$agh_dir/AdGuardHome" ]]; then
-            local current_version=$(cd "$agh_dir" && ./AdGuardHome --version 2>/dev/null | grep -oP 'v\K[0-9.]+' || echo "0.0.0")
+            current_version=$(cd "$agh_dir" && ./AdGuardHome --version 2>/dev/null | grep -oP 'v\K[0-9.]+' || echo "0.0.0")
             log_info "[DRY-RUN] Aktuelle AdGuard-Version: v$current_version"
             log_info "[DRY-RUN] Würde AdGuard Home aktualisieren"
             echo "🔍 [DRY-RUN] AdGuard Home-Update würde durchgeführt"
@@ -802,24 +802,24 @@ if [ "$UPDATE_ADGUARD" = "true" ]; then
         log_info "Stoppe AdGuardHome-Service..."
         systemctl --user stop AdGuardHome 2>&1 | tee -a "$LOG_FILE" || log_warning "AdGuardHome-Service konnte nicht gestoppt werden"
 
-        local current_version=$(./AdGuardHome --version 2>/dev/null | grep -oP 'v\K[0-9.]+' || echo "0.0.0")
+        current_version=$(./AdGuardHome --version 2>/dev/null | grep -oP 'v\K[0-9.]+' || echo "0.0.0")
         log_info "Aktuelle AdGuard-Version: v$current_version"
         echo "Aktuelle AdGuard-Version: v$current_version"
 
-        local backup_dir="$agh_dir-backup-$(date +%Y%m%d-%H%M%S)"
+        backup_dir="$agh_dir-backup-$(date +%Y%m%d-%H%M%S)"
         mkdir -p "$backup_dir"
         cp AdGuardHome.yaml data/* "$backup_dir/" 2>/dev/null || log_warning "Backup konnte nicht erstellt werden"
         log_info "Backup erstellt in: $backup_dir"
 
-        local download_url="https://static.adguard.com/adguardhome/release/AdGuardHome_linux_amd64.tar.gz"
+        download_url="https://static.adguard.com/adguardhome/release/AdGuardHome_linux_amd64.tar.gz"
         log_info "Lade AdGuardHome von: $download_url"
 
         if download_with_retry "$download_url" "$temp_dir/AdGuardHome.tar.gz"; then
             if [[ -f "$temp_dir/AdGuardHome.tar.gz" ]]; then
                 if tar -C "$temp_dir" -xzf "$temp_dir/AdGuardHome.tar.gz" 2>&1 | tee -a "$LOG_FILE"; then
-                    local new_binary="$temp_dir/AdGuardHome/AdGuardHome"
+                    new_binary="$temp_dir/AdGuardHome/AdGuardHome"
                     if [[ -f "$new_binary" ]]; then
-                        local new_version=$("$new_binary" --version 2>/dev/null | grep -oP 'v\K[0-9.]+' || echo "0.0.0")
+                        new_version=$("$new_binary" --version 2>/dev/null | grep -oP 'v\K[0-9.]+' || echo "0.0.0")
                         # Semantischer Versionsvergleich statt String-Vergleich
                         if printf '%s\n%s\n' "$current_version" "$new_version" | sort -V | head -1 | grep -q "^$current_version$"; then
                             if [ "$new_version" != "$current_version" ]; then
