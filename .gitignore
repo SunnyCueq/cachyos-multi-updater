@@ -10,6 +10,9 @@ logs/
 cursor_latest_amd64.deb
 cursor-extract/
 
+# Cache-Verzeichnis
+.cache/
+
 # Temporäre AdGuard-Dateien
 /tmp/AdGuardHome-*
 

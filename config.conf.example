@@ -25,3 +25,17 @@ ENABLE_NOTIFICATIONS=true
 # false = normale Ausführung
 DRY_RUN=false
 
+# ========== Farbige Ausgabe ==========
+# true = farbige Terminal-Ausgabe (Standard)
+# false = keine Farben (für Logs/Redirects)
+ENABLE_COLORS=true
+
+# ========== Download-Retry ==========
+# Anzahl der Wiederholungsversuche bei fehlgeschlagenen Downloads (Standard: 3)
+DOWNLOAD_RETRIES=3
+
+# ========== Automatisches Script-Update ==========
+# true = ermöglicht automatisches Update des Scripts selbst (mit Bestätigung)
+# false = nur Hinweis auf neue Version (Standard)
+ENABLE_AUTO_UPDATE=false
+

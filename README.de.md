@@ -730,6 +730,90 @@ MAX_LOG_FILES=1
 ```
 Dies behält nur die neueste Log-Datei (nicht empfohlen - du verlierst die Historie).
 
+#### 8. ENABLE_COLORS
+
+```ini
+ENABLE_COLORS=true
+```
+
+**Was es macht:** Steuert, ob farbige Ausgabe im Terminal verwendet wird.
+
+**Werte:**
+- `true` = Farbige Ausgabe aktiviert (Standard)
+- `false` = Keine Farben (nützlich für Logs/Redirects)
+
+**Was sind Farben?** Das Script verwendet Farben, um die Ausgabe lesbarer zu machen:
+- Cyan für Info-Nachrichten
+- Grün für Erfolgs-Nachrichten
+- Rot für Fehler-Nachrichten
+- Gelb für Warnungen
+
+**Wann deaktivieren:**
+- Du leitest die Ausgabe in eine Datei um
+- Dein Terminal unterstützt keine Farben
+- Du bevorzugst reine Textausgabe
+
+**Beispiel:**
+```ini
+ENABLE_COLORS=false
+```
+Dies deaktiviert farbige Ausgabe. Alle Nachrichten werden als reiner Text angezeigt.
+
+#### 9. DOWNLOAD_RETRIES
+
+```ini
+DOWNLOAD_RETRIES=3
+```
+
+**Was es macht:** Steuert, wie oft das Script einen fehlgeschlagenen Download wiederholt.
+
+**Werte:**
+- Beliebige Zahl (Standard: 3)
+- Das Script wiederholt bis zu N Mal, wenn ein Download fehlschlägt
+- Wartet 2 Sekunden zwischen Wiederholungen
+
+**Warum wiederholen?** Netzwerkprobleme können zu temporären Download-Fehlern führen. Wiederholen gibt dem Download eine weitere Chance, erfolgreich zu sein.
+
+**Beispiel:**
+```ini
+DOWNLOAD_RETRIES=5
+```
+Dies wiederholt bis zu 5 Mal, wenn ein Download fehlschlägt.
+
+```ini
+DOWNLOAD_RETRIES=1
+```
+Dies versucht nur einmal (keine Wiederholungen).
+
+#### 10. ENABLE_AUTO_UPDATE
+
+```ini
+ENABLE_AUTO_UPDATE=false
+```
+
+**Was es macht:** Aktiviert automatisches Update des Scripts selbst (mit Bestätigung).
+
+**Werte:**
+- `true` = Automatisches Update aktiviert (fragt nach Bestätigung)
+- `false` = Zeigt nur Update-Benachrichtigung (Standard)
+
+**Was passiert, wenn aktiviert?** Wenn eine neue Script-Version verfügbar ist, wird das Script:
+1. Anzeigen, dass eine neue Version verfügbar ist
+2. Fragen, ob du jetzt aktualisieren möchtest
+3. Wenn ja, automatisch `git pull` ausführen, um zu aktualisieren
+4. Wenn nein, nur Update-Anweisungen anzeigen
+
+**Wann aktivieren:**
+- Du möchtest bequeme Script-Updates
+- Du vertraust dem Repository
+- Du möchtest einfach auf dem neuesten Stand bleiben
+
+**Beispiel:**
+```ini
+ENABLE_AUTO_UPDATE=true
+```
+Dies aktiviert automatische Script-Updates mit Bestätigung.
+
 ### Vollständiges Konfigurationsbeispiel
 
 Hier ist ein vollständiges Beispiel einer Konfigurationsdatei mit Kommentaren:
@@ -752,6 +836,15 @@ ENABLE_NOTIFICATIONS=true      # Desktop-Benachrichtigungen anzeigen
 
 # Sicherheitseinstellungen
 DRY_RUN=false                  # Tatsächliche Änderungen vornehmen (nicht Vorschaumodus)
+
+# Erscheinungsbild
+ENABLE_COLORS=true              # Farbige Terminal-Ausgabe
+
+# Download-Einstellungen
+DOWNLOAD_RETRIES=3             # Fehlgeschlagene Downloads bis zu 3 Mal wiederholen
+
+# Script-Update
+ENABLE_AUTO_UPDATE=false       # Automatisches Script-Update aktivieren (mit Bestätigung)
 ```
 
 ### Wie Konfiguration funktioniert
@@ -1235,7 +1328,22 @@ Dies zeigt, was aktualisiert WÜRDE, ohne Änderungen vorzunehmen.
 
 ## 📅 Changelog
 
-### Version 2.4.0 (Aktuell)
+### Version 2.5.0 (Aktuell)
+
+**Neue Features:**
+- Retry-Mechanismus für Downloads (konfigurierbare Wiederholungen bei Netzwerkfehlern)
+- Zusammenfassung am Ende (Dauer, was wurde aktualisiert, Paketanzahl)
+- Farbige Terminal-Ausgabe (optional, für bessere Lesbarkeit)
+- Automatisches Script-Update (optional, mit Bestätigung)
+- Versionsprüfung-Caching (Performance-Verbesserung)
+
+**Verbesserungen:**
+- Bessere Fehlerbehandlung für Downloads
+- Informativere Ausgabe
+- Bessere Benutzerfreundlichkeit mit farbigen Nachrichten
+- Performance-Optimierung mit Caching
+
+### Version 2.4.0
 
 **Versionsprüfung-Verbesserungen:**
 - Verbesserte Versionsprüfung (prüft sowohl Releases als auch Tags)

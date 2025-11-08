@@ -725,6 +725,90 @@ MAX_LOG_FILES=1
 ```
 This keeps only the most recent log file (not recommended - you lose history).
 
+#### 8. ENABLE_COLORS
+
+```ini
+ENABLE_COLORS=true
+```
+
+**What it does:** Controls whether colored output is used in the terminal.
+
+**Values:**
+- `true` = Colored output enabled (default)
+- `false` = No colors (useful for logs/redirects)
+
+**What are colors?** The script uses colors to make output more readable:
+- Cyan for info messages
+- Green for success messages
+- Red for error messages
+- Yellow for warnings
+
+**When to disable:**
+- You're redirecting output to a file
+- Your terminal doesn't support colors
+- You prefer plain text output
+
+**Example:**
+```ini
+ENABLE_COLORS=false
+```
+This disables colored output. All messages will be plain text.
+
+#### 9. DOWNLOAD_RETRIES
+
+```ini
+DOWNLOAD_RETRIES=3
+```
+
+**What it does:** Controls how many times the script retries a failed download.
+
+**Values:**
+- Any number (default: 3)
+- The script will retry up to N times if a download fails
+- Waits 2 seconds between retries
+
+**Why retry?** Network issues can cause temporary download failures. Retrying gives the download another chance to succeed.
+
+**Example:**
+```ini
+DOWNLOAD_RETRIES=5
+```
+This retries up to 5 times if a download fails.
+
+```ini
+DOWNLOAD_RETRIES=1
+```
+This only tries once (no retries).
+
+#### 10. ENABLE_AUTO_UPDATE
+
+```ini
+ENABLE_AUTO_UPDATE=false
+```
+
+**What it does:** Enables automatic update of the script itself (with confirmation).
+
+**Values:**
+- `true` = Automatic update enabled (asks for confirmation)
+- `false` = Only shows update notification (default)
+
+**What happens when enabled?** If a new script version is available, the script will:
+1. Show that a new version is available
+2. Ask if you want to update now
+3. If yes, automatically run `git pull` to update
+4. If no, just show update instructions
+
+**When to enable:**
+- You want convenient script updates
+- You trust the repository
+- You want to stay up-to-date easily
+
+**Example:**
+```ini
+ENABLE_AUTO_UPDATE=true
+```
+This enables automatic script updates with confirmation.
+
 ### Complete configuration example
 
 Here's a complete example configuration file with comments:
@@ -747,6 +831,15 @@ ENABLE_NOTIFICATIONS=true      # Show desktop notifications
 
 # Safety settings
 DRY_RUN=false                  # Make actual changes (not preview mode)
+
+# Appearance
+ENABLE_COLORS=true              # Colored terminal output
+
+# Download settings
+DOWNLOAD_RETRIES=3             # Retry failed downloads up to 3 times
+
+# Script update
+ENABLE_AUTO_UPDATE=false       # Enable automatic script updates (with confirmation)
 ```
 
 ### How configuration works
@@ -1226,7 +1319,22 @@ This shows what WOULD be updated without making changes.
 
 ## 📅 Changelog
 
-### Version 2.4.0 (Current)
+### Version 2.5.0 (Current)
+
+**New features:**
+- Retry mechanism for downloads (configurable retries on network failures)
+- Summary at the end (duration, what was updated, package counts)
+- Colored terminal output (optional, for better readability)
+- Automatic script update (optional, with confirmation)
+- Version check caching (performance improvement)
+
+**Improvements:**
+- Better error handling for downloads
+- More informative output
+- Better user experience with colored messages
+- Performance optimization with caching
+
+### Version 2.4.0
 
 **Version check improvements:**
 - Improved version checking (checks both Releases and Tags)

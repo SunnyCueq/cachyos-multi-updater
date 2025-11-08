@@ -5,7 +5,7 @@
 set -euo pipefail
 
 # ========== Version ==========
-SCRIPT_VERSION="2.3.0"
+SCRIPT_VERSION="2.5.0"
 GITHUB_REPO="SunnyCueq/cachyos-multi-updater"
 
 # ========== Konfiguration ==========
@@ -23,9 +23,27 @@ UPDATE_CURSOR=true
 UPDATE_ADGUARD=true
 DRY_RUN=false
 ENABLE_NOTIFICATIONS=true
+ENABLE_COLORS=true
+DOWNLOAD_RETRIES=3
+ENABLE_AUTO_UPDATE=false
+
+# Tracking-Variablen für Zusammenfassung
+START_TIME=$(date +%s)
+SYSTEM_UPDATED=false
+AUR_UPDATED=false
+CURSOR_UPDATED=false
+ADGUARD_UPDATED=false
+SYSTEM_PACKAGES=0
+AUR_PACKAGES=0
+
+# Cache-Verzeichnis für Versions-Checks
+CACHE_DIR="$SCRIPT_DIR/.cache"
+VERSION_CACHE_FILE="$CACHE_DIR/version_cache.json"
+CACHE_MAX_AGE=3600  # 1 Stunde
 
 # Log-Verzeichnis erstellen
 mkdir -p "$LOG_DIR"
+mkdir -p "$CACHE_DIR"
 
 # ========== Lock-File prüfen ==========
 if [ -f "$LOCK_FILE" ]; then
@@ -60,6 +78,9 @@ load_config() {
                 DRY_RUN) DRY_RUN=$(echo "$value" | tr '[:upper:]' '[:lower:]') ;;
                 ENABLE_NOTIFICATIONS) ENABLE_NOTIFICATIONS=$(echo "$value" | tr '[:upper:]' '[:lower:]') ;;
                 MAX_LOG_FILES) MAX_LOG_FILES="$value" ;;
+                ENABLE_COLORS) ENABLE_COLORS=$(echo "$value" | tr '[:upper:]' '[:lower:]') ;;
+                DOWNLOAD_RETRIES) DOWNLOAD_RETRIES="$value" ;;
+                ENABLE_AUTO_UPDATE) ENABLE_AUTO_UPDATE=$(echo "$value" | tr '[:upper:]' '[:lower:]') ;;
             esac
         done < "$CONFIG_FILE"
     fi
@@ -143,6 +164,23 @@ if [ "$DRY_RUN" = "true" ]; then
     echo ""
 fi
 
+# ========== Farben (optional) ==========
+if [ "$ENABLE_COLORS" = "true" ] && [ -t 1 ]; then
+    COLOR_RESET='\033[0m'
+    COLOR_INFO='\033[0;36m'      # Cyan
+    COLOR_SUCCESS='\033[0;32m'   # Green
+    COLOR_ERROR='\033[0;31m'     # Red
+    COLOR_WARNING='\033[0;33m'   # Yellow
+    COLOR_BOLD='\033[1m'         # Bold
+else
+    COLOR_RESET=''
+    COLOR_INFO=''
+    COLOR_SUCCESS=''
+    COLOR_ERROR=''
+    COLOR_WARNING=''
+    COLOR_BOLD=''
+fi
+
 # ========== Logging-Funktionen ==========
 log() {
     local level="$1"
@@ -154,22 +192,22 @@ log() {
 
 log_info() {
     log "INFO" "$@"
-    echo "ℹ️  $*"
+    echo -e "${COLOR_INFO}ℹ️  $*${COLOR_RESET}"
 }
 
 log_success() {
     log "SUCCESS" "$@"
-    echo "✅ $*"
+    echo -e "${COLOR_SUCCESS}✅ $*${COLOR_RESET}"
 }
 
 log_error() {
     log "ERROR" "$@"
-    echo "❌ $*" >&2
+    echo -e "${COLOR_ERROR}❌ $*${COLOR_RESET}" >&2
 }
 
 log_warning() {
     log "WARNING" "$@"
-    echo "⚠️  $*"
+    echo -e "${COLOR_WARNING}⚠️  $*${COLOR_RESET}"
 }
 
 # ========== Error Handling ==========
@@ -184,6 +222,51 @@ cleanup_on_error() {
 
 trap cleanup_on_error EXIT
 
+# ========== Retry-Funktion für Downloads ==========
+download_with_retry() {
+    local url="$1"
+    local output_file="$2"
+    local max_retries="${DOWNLOAD_RETRIES:-3}"
+    local retry=0
+    
+    while [ $retry -lt $max_retries ]; do
+        if curl -L -f --progress-bar -o "$output_file" "$url" 2>&1 | tee -a "$LOG_FILE"; then
+            return 0
+        fi
+        
+        retry=$((retry + 1))
+        if [ $retry -lt $max_retries ]; then
+            log_warning "Download fehlgeschlagen, Versuch $retry/$max_retries..."
+            sleep 2
+        else
+            log_error "Download nach $max_retries Versuchen fehlgeschlagen!"
+            return 1
+        fi
+    done
+}
+
+# ========== Cache-Funktionen für Versions-Checks ==========
+get_cached_version() {
+    local cache_key="$1"
+    local cache_file="$CACHE_DIR/${cache_key}_version.cache"
+    if [ -f "$cache_file" ]; then
+        local cache_time=$(head -1 "$cache_file" 2>/dev/null || echo "0")
+        local cached_version=$(tail -n +2 "$cache_file" 2>/dev/null || echo "")
+        local current_time=$(date +%s)
+        if [ -n "$cached_version" ] && [ $((current_time - cache_time)) -lt $CACHE_MAX_AGE ]; then
+            echo "$cached_version"
+        fi
+    fi
+}
+
+set_cached_version() {
+    local cache_key="$1"
+    local version="$2"
+    local cache_file="$CACHE_DIR/${cache_key}_version.cache"
+    echo "$(date +%s)" > "$cache_file"
+    echo "$version" >> "$cache_file"
+}
+
 # ========== Alte Logs aufräumen ==========
 cleanup_old_logs() {
     if [ -d "$LOG_DIR" ]; then
@@ -197,7 +280,8 @@ log_info "CachyOS Multi-Updater Version $SCRIPT_VERSION"
 log_info "Update gestartet..."
 log_info "Log-Datei: $LOG_FILE"
 [ "$DRY_RUN" = "true" ] && log_info "DRY-RUN Modus aktiviert"
-echo "🛡️  Update gestartet... (Passwort für sudo eingeben)"
+[ "$ENABLE_COLORS" = "true" ] && log_info "Farbige Ausgabe aktiviert"
+echo -e "${COLOR_BOLD}🛡️  Update gestartet... (Passwort für sudo eingeben)${COLOR_RESET}"
 
 # ========== CachyOS updaten ==========
 if [ "$UPDATE_SYSTEM" = "true" ]; then
@@ -209,6 +293,13 @@ if [ "$UPDATE_SYSTEM" = "true" ]; then
         echo "🔍 [DRY-RUN] System-Update würde durchgeführt"
     else
         if sudo pacman -Syu --noconfirm 2>&1 | tee -a "$LOG_FILE"; then
+            SYSTEM_UPDATED=true
+            # Zähle Pakete, die Updates haben (nach dem Update sollten es 0 sein, aber wir prüfen vorher)
+            SYSTEM_PACKAGES=$(pacman -Qu 2>/dev/null | wc -l || echo "0")
+            # Wenn 0, bedeutet das alles ist aktuell
+            if [ "$SYSTEM_PACKAGES" -eq 0 ]; then
+                SYSTEM_PACKAGES="0 (bereits aktuell)"
+            fi
             log_success "CachyOS-Update erfolgreich"
         else
             log_error "Pacman-Update fehlgeschlagen!"
@@ -237,6 +328,8 @@ if [ "$UPDATE_AUR" = "true" ]; then
         if command -v yay >/dev/null 2>&1; then
             log_info "Verwende yay als AUR-Helper"
             if yay -Syu --noconfirm 2>&1 | tee -a "$LOG_FILE" | grep -v "error occurred" || true; then
+                AUR_UPDATED=true
+                AUR_PACKAGES=$(yay -Qu 2>/dev/null | wc -l || echo "0")
                 log_success "AUR-Update mit yay erfolgreich"
             else
                 log_warning "AUR-Update mit yay hatte Warnungen"
@@ -244,6 +337,8 @@ if [ "$UPDATE_AUR" = "true" ]; then
         elif command -v paru >/dev/null 2>&1; then
             log_info "Verwende paru als AUR-Helper"
             if paru -Syu --noconfirm 2>&1 | tee -a "$LOG_FILE" | grep -v "error occurred" || true; then
+                AUR_UPDATED=true
+                AUR_PACKAGES=$(paru -Qu 2>/dev/null | wc -l || echo "0")
                 log_success "AUR-Update mit paru erfolgreich"
             else
                 log_warning "AUR-Update mit paru hatte Warnungen"
@@ -323,7 +418,7 @@ if [ "$UPDATE_CURSOR" = "true" ]; then
             log_info "Lade Cursor .deb von: $DOWNLOAD_URL"
             echo "⬇️  Lade Cursor .deb..."
             
-            if ! curl -L -f --progress-bar -o "$DEB_FILE" "$DOWNLOAD_URL" 2>&1 | tee -a "$LOG_FILE"; then
+            if ! download_with_retry "$DOWNLOAD_URL" "$DEB_FILE"; then
                 log_error "Cursor-Download fehlgeschlagen!"
                 echo "❌ Download fehlgeschlagen!"
                 rm -f "$DEB_FILE"
@@ -423,6 +518,7 @@ if [ "$UPDATE_CURSOR" = "true" ]; then
                             # Neue Version prüfen
                             sleep 1
                             NEW_VERSION=$(cursor --version 2>/dev/null | grep -oP '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "installiert")
+                            CURSOR_UPDATED=true
                             log_success "Cursor updated: $CURRENT_VERSION → $NEW_VERSION"
                             echo "✅ Cursor aktualisiert: $CURRENT_VERSION → $NEW_VERSION"
                             
@@ -493,7 +589,7 @@ if [ "$UPDATE_ADGUARD" = "true" ]; then
         DOWNLOAD_URL="https://static.adguard.com/adguardhome/release/AdGuardHome_linux_amd64.tar.gz"
         log_info "Lade AdGuardHome von: $DOWNLOAD_URL"
         
-        if curl -L -f --progress-bar -o "$TEMP_DIR/AdGuardHome.tar.gz" "$DOWNLOAD_URL" 2>&1 | tee -a "$LOG_FILE"; then
+        if download_with_retry "$DOWNLOAD_URL" "$TEMP_DIR/AdGuardHome.tar.gz"; then
             if [[ -f "$TEMP_DIR/AdGuardHome.tar.gz" ]]; then
                 if tar -C "$TEMP_DIR" -xzf "$TEMP_DIR/AdGuardHome.tar.gz" 2>&1 | tee -a "$LOG_FILE"; then
                     NEW_BINARY="$TEMP_DIR/AdGuardHome/AdGuardHome"
@@ -501,6 +597,7 @@ if [ "$UPDATE_ADGUARD" = "true" ]; then
                         NEW_VERSION=$("$NEW_BINARY" --version 2>/dev/null | grep -oP 'v\K[0-9.]+' || echo "0.0.0")
                         if [[ "$NEW_VERSION" > "$CURRENT_VERSION" ]]; then
                             if cp "$NEW_BINARY" "$AGH_DIR/" 2>&1 | tee -a "$LOG_FILE"; then
+                                ADGUARD_UPDATED=true
                                 log_success "AdGuardHome updated: v$CURRENT_VERSION → v$NEW_VERSION"
                                 echo "✅ AdGuardHome updated: v$CURRENT_VERSION → v$NEW_VERSION"
                             else
@@ -554,15 +651,95 @@ else
 fi
 
 # ========== Zusammenfassung ==========
+END_TIME=$(date +%s)
+DURATION=$((END_TIME - START_TIME))
+MINUTES=$((DURATION / 60))
+SECONDS=$((DURATION % 60))
+
 if [ "$DRY_RUN" = "true" ]; then
     log_info "DRY-RUN abgeschlossen - keine Änderungen vorgenommen"
     echo "🔍 DRY-RUN abgeschlossen - keine Änderungen vorgenommen"
 else
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo -e "${COLOR_BOLD}📊 Update-Zusammenfassung${COLOR_RESET}"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    
+    # Dauer
+    if [ $MINUTES -gt 0 ]; then
+        echo -e "⏱️  ${COLOR_INFO}Dauer:${COLOR_RESET} ${MINUTES}m ${SECONDS}s"
+    else
+        echo -e "⏱️  ${COLOR_INFO}Dauer:${COLOR_RESET} ${SECONDS}s"
+    fi
+    echo ""
+    
+    # System-Updates
+    if [ "$UPDATE_SYSTEM" = "true" ]; then
+        if [ "$SYSTEM_UPDATED" = "true" ]; then
+            echo -e "✅ ${COLOR_SUCCESS}System-Updates:${COLOR_RESET} Erfolgreich"
+            if [ "$SYSTEM_PACKAGES" != "0 (bereits aktuell)" ] && [ "$SYSTEM_PACKAGES" -gt 0 ]; then
+                echo "   📦 $SYSTEM_PACKAGES Pakete aktualisiert"
+            else
+                echo "   ℹ️  Bereits auf dem neuesten Stand"
+            fi
+        else
+            echo -e "❌ ${COLOR_ERROR}System-Updates:${COLOR_RESET} Fehlgeschlagen oder übersprungen"
+        fi
+    else
+        echo -e "⏭️  ${COLOR_WARNING}System-Updates:${COLOR_RESET} Deaktiviert"
+    fi
+    echo ""
+    
+    # AUR-Updates
+    if [ "$UPDATE_AUR" = "true" ]; then
+        if [ "$AUR_UPDATED" = "true" ]; then
+            echo -e "✅ ${COLOR_SUCCESS}AUR-Updates:${COLOR_RESET} Erfolgreich"
+            if [ -n "$AUR_PACKAGES" ] && [ "$AUR_PACKAGES" -gt 0 ] 2>/dev/null; then
+                echo "   📦 $AUR_PACKAGES Pakete aktualisiert"
+            else
+                echo "   ℹ️  Bereits auf dem neuesten Stand"
+            fi
+        else
+            echo -e "❌ ${COLOR_ERROR}AUR-Updates:${COLOR_RESET} Fehlgeschlagen oder übersprungen"
+        fi
+    else
+        echo -e "⏭️  ${COLOR_WARNING}AUR-Updates:${COLOR_RESET} Deaktiviert"
+    fi
+    echo ""
+    
+    # Cursor
+    if [ "$UPDATE_CURSOR" = "true" ]; then
+        if [ "$CURSOR_UPDATED" = "true" ]; then
+            echo -e "✅ ${COLOR_SUCCESS}Cursor:${COLOR_RESET} Aktualisiert"
+        else
+            echo -e "⏭️  ${COLOR_WARNING}Cursor:${COLOR_RESET} Übersprungen oder bereits aktuell"
+        fi
+    else
+        echo -e "⏭️  ${COLOR_WARNING}Cursor:${COLOR_RESET} Deaktiviert"
+    fi
+    echo ""
+    
+    # AdGuard Home
+    if [ "$UPDATE_ADGUARD" = "true" ]; then
+        if [ "$ADGUARD_UPDATED" = "true" ]; then
+            echo -e "✅ ${COLOR_SUCCESS}AdGuard Home:${COLOR_RESET} Aktualisiert"
+        else
+            echo -e "⏭️  ${COLOR_WARNING}AdGuard Home:${COLOR_RESET} Übersprungen oder bereits aktuell"
+        fi
+    else
+        echo -e "⏭️  ${COLOR_WARNING}AdGuard Home:${COLOR_RESET} Deaktiviert"
+    fi
+    echo ""
+    
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    
     log_success "Alle Updates abgeschlossen!"
-    echo "🎉 Alles up-to-date!"
+    echo -e "${COLOR_BOLD}🎉 Alles up-to-date!${COLOR_RESET}"
     
     if [ "$ENABLE_NOTIFICATIONS" = "true" ]; then
-        notify-send "Update fertig!" "CachyOS, AUR, Cursor & AdGuard sind frisch!" 2>/dev/null || true
+        notify-send "Update fertig!" "Dauer: ${MINUTES}m ${SECONDS}s" 2>/dev/null || true
     fi
 fi
 
@@ -577,12 +754,25 @@ check_script_update() {
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "🔍 Script-Version prüfen..."
     
-    # Versuche zuerst Releases, dann Tags
-    LATEST_VERSION=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases/latest" 2>/dev/null | grep -oP '"tag_name":\s*"v?\K[0-9.]+' | head -1 || echo "")
+    # Prüfe Cache zuerst
+    CACHED_VERSION=$(get_cached_version "script")
     
-    # Falls kein Release, prüfe Tags direkt
-    if [ -z "$LATEST_VERSION" ]; then
-        LATEST_VERSION=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/git/refs/tags" 2>/dev/null | grep -oP '"ref":\s*"refs/tags/v?\K[0-9.]+' | sort -V | tail -1 || echo "")
+    if [ -n "$CACHED_VERSION" ]; then
+        LATEST_VERSION="$CACHED_VERSION"
+        log_info "Verwende gecachte Version: $LATEST_VERSION"
+    else
+        # Versuche zuerst Releases, dann Tags
+        LATEST_VERSION=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases/latest" 2>/dev/null | grep -oP '"tag_name":\s*"v?\K[0-9.]+' | head -1 || echo "")
+        
+        # Falls kein Release, prüfe Tags direkt
+        if [ -z "$LATEST_VERSION" ]; then
+            LATEST_VERSION=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/git/refs/tags" 2>/dev/null | grep -oP '"ref":\s*"refs/tags/v?\K[0-9.]+' | sort -V | tail -1 || echo "")
+        fi
+        
+        # Cache die Version
+        if [ -n "$LATEST_VERSION" ]; then
+            set_cached_version "script" "$LATEST_VERSION"
+        fi
     fi
     
     if [ -z "$LATEST_VERSION" ]; then
@@ -600,12 +790,36 @@ check_script_update() {
         # Prüfe ob neue Version wirklich neuer ist (semantischer Vergleich)
         if printf '%s\n%s\n' "$SCRIPT_VERSION" "$LATEST_VERSION" | sort -V | head -1 | grep -q "^$SCRIPT_VERSION$"; then
             log_warning "Neue Script-Version verfügbar: $SCRIPT_VERSION → $LATEST_VERSION"
-            echo "⚠️  Neue Script-Version verfügbar: $SCRIPT_VERSION → $LATEST_VERSION"
+            echo -e "${COLOR_WARNING}⚠️  Neue Script-Version verfügbar: $SCRIPT_VERSION → $LATEST_VERSION${COLOR_RESET}"
             echo ""
-            echo "   Update-Optionen:"
-            echo "   1. Git: cd $(dirname "$SCRIPT_DIR")/cachyos-multi-updater && git pull"
-            echo "   2. Download: https://github.com/$GITHUB_REPO/releases/latest"
-            echo "   3. ZIP: https://github.com/$GITHUB_REPO/archive/refs/tags/v$LATEST_VERSION.zip"
+            
+            if [ "$ENABLE_AUTO_UPDATE" = "true" ]; then
+                echo "   Automatisches Update ist aktiviert."
+                read -p "   Script jetzt aktualisieren? (j/N): " -n 1 -r
+                echo ""
+                if [[ $REPLY =~ ^[JjYy]$ ]]; then
+                    log_info "Starte automatisches Script-Update..."
+                    cd "$SCRIPT_DIR"
+                    if git pull origin main 2>&1 | tee -a "$LOG_FILE"; then
+                        log_success "Script erfolgreich aktualisiert!"
+                        echo -e "${COLOR_SUCCESS}✅ Script erfolgreich aktualisiert!${COLOR_RESET}"
+                        echo "   Bitte Script erneut ausführen, um die neue Version zu verwenden."
+                    else
+                        log_error "Automatisches Update fehlgeschlagen!"
+                        echo -e "${COLOR_ERROR}❌ Automatisches Update fehlgeschlagen!${COLOR_RESET}"
+                        echo "   Bitte manuell aktualisieren."
+                    fi
+                else
+                    echo "   Update übersprungen."
+                fi
+            else
+                echo "   Update-Optionen:"
+                echo "   1. Git: cd $(dirname "$SCRIPT_DIR")/cachyos-multi-updater && git pull"
+                echo "   2. Download: https://github.com/$GITHUB_REPO/releases/latest"
+                echo "   3. ZIP: https://github.com/$GITHUB_REPO/archive/refs/tags/v$LATEST_VERSION.zip"
+                echo ""
+                echo "   Tipp: Setze ENABLE_AUTO_UPDATE=true in config.conf für automatische Updates"
+            fi
         else
             log_info "Lokale Version ist neuer als GitHub-Version (Entwicklung?)"
             echo "ℹ️  Lokale Version: $SCRIPT_VERSION (GitHub: $LATEST_VERSION)"
