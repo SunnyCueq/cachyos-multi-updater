@@ -31,15 +31,15 @@ if ! git ls-remote --tags origin | grep -q "refs/tags/$VERSION"; then
     exit 1
 fi
 
-# Extrahiere Changelog aus README.md
-echo "📝 Extrahiere Changelog aus README.md..."
-CHANGELOG=$(awk "/### Version $VERSION_NUMBER/,/### Version/" README.md | head -n -1 || echo "Version $VERSION_NUMBER")
+# Extrahiere Changelog aus CHANGELOG.md
+echo "📝 Extrahiere Changelog aus CHANGELOG.md..."
+CHANGELOG=$(awk "/^## \[$VERSION_NUMBER\]/,/^## \[/" CHANGELOG.md | head -n -1 || echo "Version $VERSION_NUMBER")
 
 if [ -z "$CHANGELOG" ] || [ "$CHANGELOG" = "Version $VERSION_NUMBER" ]; then
     echo "⚠️  Warnung: Changelog nicht gefunden, verwende Standard-Text"
     CHANGELOG="Version $VERSION_NUMBER
 
-Siehe README.md für vollständigen Changelog."
+Siehe CHANGELOG.md für vollständigen Changelog."
 fi
 
 # Erstelle Release mit GitHub CLI (gh) falls verfügbar
@@ -62,7 +62,7 @@ else
     echo "  1. Gehe zu: https://github.com/$REPO/releases/new"
     echo "  2. Wähle Tag: $VERSION"
     echo "  3. Titel: Version $VERSION_NUMBER"
-    echo "  4. Beschreibung: Kopiere Changelog aus README.md"
+    echo "  4. Beschreibung: Kopiere Changelog aus CHANGELOG.md"
     echo "  5. Klicke 'Publish release'"
     echo ""
     echo "Option 3: Mit curl (benötigt GitHub Token):"
