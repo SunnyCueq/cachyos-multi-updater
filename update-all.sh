@@ -9,16 +9,19 @@ readonly SCRIPT_VERSION="2.7.3"
 readonly GITHUB_REPO="SunnyCueq/cachyos-multi-updater"
 
 # ========== Exit-Codes ==========
-readonly EXIT_SUCCESS=0
-readonly EXIT_LOCK_EXISTS=1
-readonly EXIT_CONFIG_ERROR=2
+# EXIT_SUCCESS=0 wird implizit verwendet (exit 0)
+# EXIT_LOCK_EXISTS=1 wird implizit verwendet (exit 1)
+# EXIT_CONFIG_ERROR=2 wird implizit verwendet (exit 2)
 readonly EXIT_DOWNLOAD_ERROR=3
 readonly EXIT_UPDATE_ERROR=4
 
 # ========== Konfiguration ==========
-readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-readonly LOG_DIR="$SCRIPT_DIR/logs"
-readonly LOG_FILE="$LOG_DIR/update-$(date +%Y%m%d-%H%M%S).log"
+readonly SCRIPT_DIR
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly LOG_DIR
+LOG_DIR="$SCRIPT_DIR/logs"
+readonly LOG_FILE
+LOG_FILE="$LOG_DIR/update-$(date +%Y%m%d-%H%M%S).log"
 MAX_LOG_FILES=10
 readonly CONFIG_FILE="$SCRIPT_DIR/config.conf"
 
@@ -44,7 +47,8 @@ AUR_PACKAGES=0
 
 # Cache-Verzeichnis für Versions-Checks
 readonly CACHE_DIR="$SCRIPT_DIR/.cache"
-readonly VERSION_CACHE_FILE="$CACHE_DIR/version_cache.json"
+# VERSION_CACHE_FILE wird derzeit nicht verwendet (Funktionen nutzen ${cache_key}_version.cache)
+# readonly VERSION_CACHE_FILE="$CACHE_DIR/version_cache.json"
 CACHE_MAX_AGE=3600  # 1 Stunde (konfigurierbar)
 
 # Snapshot/Backup-Verzeichnis
@@ -66,7 +70,7 @@ validate_config_value() {
     local value="$2"
 
     case "$key" in
-        ENABLE_*|DRY_RUN|ENABLE_NOTIFICATIONS|ENABLE_COLORS|ENABLE_AUTO_UPDATE)
+        DRY_RUN|ENABLE_NOTIFICATIONS|ENABLE_COLORS|ENABLE_AUTO_UPDATE)
             if [[ ! "$value" =~ ^(true|false)$ ]]; then
                 echo "WARNUNG: Ungültiger Wert für $key: '$value' (erwartet: true/false)" >&2
                 return 1
@@ -246,7 +250,8 @@ fi
 create_snapshot() {
     local component="$1"
     local source_dir="$2"
-    local snapshot_name="$component-$(date +%Y%m%d-%H%M%S)"
+    local snapshot_name
+    snapshot_name="$component-$(date +%Y%m%d-%H%M%S)"
     local snapshot_path="$SNAPSHOT_DIR/$snapshot_name"
 
     if [ ! -d "$source_dir" ]; then
