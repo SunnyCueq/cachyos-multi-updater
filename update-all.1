@@ -1,0 +1,139 @@
+.TH UPDATE-ALL 1 "2024" "CachyOS Multi-Updater" "User Commands"
+.SH NAME
+update-all.sh \- Automated update tool for CachyOS, AUR packages, Cursor editor, and AdGuard Home
+.SH SYNOPSIS
+.B update-all.sh
+[\fIOPTIONS\fR]
+.SH DESCRIPTION
+\fBupdate-all.sh\fR is a comprehensive update tool for CachyOS (and Arch Linux) that automatically updates:
+.IP \(bu 2
+CachyOS system packages (via pacman)
+.IP \(bu 2
+AUR packages (via yay or paru)
+.IP \(bu 2
+Cursor editor (automatic download and update)
+.IP \(bu 2
+AdGuard Home (automatic download and update)
+.PP
+All updates are logged with timestamps, and the script includes error handling to continue with other updates even if one component fails.
+.SH OPTIONS
+.TP
+\fB--only-system\fR
+Update only CachyOS system packages (pacman)
+.TP
+\fB--only-aur\fR
+Update only AUR packages (yay/paru)
+.TP
+\fB--only-cursor\fR
+Update only Cursor editor
+.TP
+\fB--only-adguard\fR
+Update only AdGuard Home
+.TP
+\fB--dry-run\fR
+Preview what would be updated without making any changes
+.TP
+\fB--version\fR, \fB-v\fR
+Display version information
+.TP
+\fB--help\fR, \fB-h\fR
+Display help message
+.SH CONFIGURATION
+The script can be configured via a \fBconfig.conf\fR file in the script directory. Copy \fBconfig.conf.example\fR to \fBconfig.conf\fR and customize it.
+.PP
+Available configuration options:
+.IP \(bu 2
+\fBENABLE_SYSTEM_UPDATE\fR - Enable/disable system updates (true/false)
+.IP \(bu 2
+\fBENABLE_AUR_UPDATE\fR - Enable/disable AUR updates (true/false)
+.IP \(bu 2
+\fBENABLE_CURSOR_UPDATE\fR - Enable/disable Cursor updates (true/false)
+.IP \(bu 2
+\fBENABLE_ADGUARD_UPDATE\fR - Enable/disable AdGuard Home updates (true/false)
+.IP \(bu 2
+\fBENABLE_NOTIFICATIONS\fR - Enable desktop notifications (true/false)
+.IP \(bu 2
+\fBDRY_RUN\fR - Enable dry-run mode by default (true/false)
+.IP \(bu 2
+\fBMAX_LOG_FILES\fR - Number of log files to keep (default: 10)
+.SH LOGS
+All updates are logged to files in the \fBlogs/\fR directory with the format:
+.PP
+\fBupdate-YYYYMMDD-HHMMSS.log\fR
+.PP
+The script automatically keeps the last 10 log files (configurable via \fBMAX_LOG_FILES\fR).
+.SH LOCK FILE
+The script uses a lock file (\fB.update-all.lock\fR) to prevent multiple simultaneous executions. If you're sure no update is running, you can manually delete this file.
+.SH REQUIREMENTS
+.IP \(bu 2
+CachyOS or Arch Linux
+.IP \(bu 2
+sudo privileges
+.IP \(bu 2
+One of: yay or paru (optional, for AUR updates)
+.IP \(bu 2
+Cursor editor (optional, will be updated if installed)
+.IP \(bu 2
+AdGuard Home (optional, will be updated if installed)
+.SH EXAMPLES
+Update all components:
+.PP
+.RS
+.nf
+$ ./update-all.sh
+.fi
+.RE
+.PP
+Update only system packages:
+.PP
+.RS
+.nf
+$ ./update-all.sh --only-system
+.fi
+.RE
+.PP
+Preview what would be updated:
+.PP
+.RS
+.nf
+$ ./update-all.sh --dry-run
+.fi
+.RE
+.PP
+Show version:
+.PP
+.RS
+.nf
+$ ./update-all.sh --version
+.fi
+.RE
+.SH NOTES
+.IP \(bu 2
+Cursor will be automatically closed during the update
+.IP \(bu 2
+AdGuard Home will be briefly stopped during the update
+.IP \(bu 2
+The script requires sudo privileges for system and AUR updates
+.IP \(bu 2
+If errors occur, the script will not exit immediately but will try to complete all updates
+.SH FILES
+.TP
+\fBconfig.conf\fR
+Configuration file (optional)
+.TP
+\fB.update-all.lock\fR
+Lock file to prevent multiple executions
+.TP
+\fBlogs/\fR
+Directory containing log files
+.SH SEE ALSO
+.BR yay (1),
+.BR paru (1),
+.BR pacman (8)
+.SH AUTHOR
+SunnyCueq
+.PP
+GitHub: https://github.com/SunnyCueq/cachyos-multi-updater
+.SH LICENSE
+This project is open source. You can freely use, modify, and distribute it.
+

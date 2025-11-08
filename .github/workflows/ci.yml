@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install ShellCheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+      
+      - name: Run ShellCheck
+        run: |
+          shellcheck update-all.sh sync-desktop.sh || true
+          # ShellCheck warnings are non-blocking for now
+  
+  syntax-check:
+    name: Bash Syntax Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Check bash syntax
+        run: |
+          bash -n update-all.sh
+          bash -n sync-desktop.sh
+  
+  markdown-lint:
+    name: Markdown Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install markdownlint
+        run: |
+          npm install -g markdownlint-cli
+      
+      - name: Run markdownlint
+        run: |
+          markdownlint README.md README.de.md || true
+          # Markdown lint warnings are non-blocking
+

@@ -41,3 +41,15 @@ Thumbs.db
 test-*
 *.test
 
+# Interne Entwickler-Dokumentation (nicht für Endbenutzer)
+claude.md
+CONTEXT.md
+IMPROVEMENTS.md
+rules.md
+
+# User-spezifische Scripts (enthält hardcodierte Pfade)
+sync-desktop.sh
+
+# Cursor IDE spezifische Dateien
+.cursorrules
+

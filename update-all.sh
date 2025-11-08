@@ -4,6 +4,9 @@
 
 set -euo pipefail
 
+# ========== Version ==========
+SCRIPT_VERSION="2.1.0"
+
 # ========== Konfiguration ==========
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOG_DIR="$SCRIPT_DIR/logs"
@@ -97,6 +100,7 @@ parse_args() {
                 ;;
             --help|-h)
                 echo "CachyOS Multi-Updater"
+                echo "Version: $SCRIPT_VERSION"
                 echo ""
                 echo "Verwendung: $0 [OPTIONEN]"
                 echo ""
@@ -106,8 +110,13 @@ parse_args() {
                 echo "  --only-cursor      Nur Cursor-Update"
                 echo "  --only-adguard     Nur AdGuard Home-Update"
                 echo "  --dry-run          Zeigt was gemacht würde, ohne Änderungen"
+                echo "  --version, -v      Zeigt die Versionsnummer"
                 echo "  --help, -h         Zeigt diese Hilfe"
                 echo ""
+                exit 0
+                ;;
+            --version|-v)
+                echo "CachyOS Multi-Updater Version $SCRIPT_VERSION"
                 exit 0
                 ;;
             *)
@@ -183,6 +192,7 @@ cleanup_old_logs() {
 
 cleanup_old_logs
 
+log_info "CachyOS Multi-Updater Version $SCRIPT_VERSION"
 log_info "Update gestartet..."
 log_info "Log-Datei: $LOG_FILE"
 [ "$DRY_RUN" = "true" ] && log_info "DRY-RUN Modus aktiviert"
