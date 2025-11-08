@@ -51,7 +51,6 @@ Ein Bash-Script für CachyOS Linux, das mit einem Klick mehrere Komponenten aktu
   - `config.conf` - Konfiguration
   - `logs/` - Log-Dateien
   - `.stats/` - Statistiken (JSON)
-  - `.snapshots/` - Backups (optional)
 
 ## Wo läuft es?
 

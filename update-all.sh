@@ -55,10 +55,6 @@ ADGUARD_UPDATED=false
 SYSTEM_PACKAGES=0
 AUR_PACKAGES=0
 
-# Snapshot/Backup-Verzeichnis
-readonly SNAPSHOT_DIR="$SCRIPT_DIR/.snapshots"
-mkdir -p "$SNAPSHOT_DIR"
-
 # Statistiken-Verzeichnis
 readonly STATS_DIR="$SCRIPT_DIR/.stats"
 readonly STATS_FILE="$STATS_DIR/stats.json"
@@ -280,70 +276,6 @@ fi
 
 # Farben sind bereits oben gesetzt (vor Module laden)
 
-# ========== Snapshot/Rollback-Funktionen ==========
-create_snapshot() {
-    local component="$1"
-    local source_dir="$2"
-    local snapshot_name
-    snapshot_name="$component-$(date +%Y%m%d-%H%M%S)"
-    local snapshot_path="$SNAPSHOT_DIR/$snapshot_name"
-
-    if [ ! -d "$source_dir" ]; then
-        log_warning "Snapshot für $component übersprungen: Verzeichnis nicht gefunden"
-        return 1
-    fi
-
-    log_info "Erstelle Snapshot für $component..."
-    if cp -a "$source_dir" "$snapshot_path" 2>&1 | tee -a "$LOG_FILE"; then
-        log_success "Snapshot erstellt: $snapshot_name"
-        echo "$snapshot_path"  # Rückgabe des Snapshot-Pfads
-        return 0
-    else
-        log_error "Snapshot-Erstellung fehlgeschlagen für $component"
-        return 1
-    fi
-}
-
-rollback_snapshot() {
-    local component="$1"
-    local snapshot_path="$2"
-    local target_dir="$3"
-
-    if [ ! -d "$snapshot_path" ]; then
-        log_error "Snapshot nicht gefunden: $snapshot_path"
-        return 1
-    fi
-
-    log_warning "Führe Rollback durch für $component..."
-    echo "⚠️  Führe Rollback durch: $component"
-
-    if [ -d "$target_dir" ]; then
-        rm -rf "$target_dir" 2>&1 | tee -a "$LOG_FILE" || true
-    fi
-
-    if cp -a "$snapshot_path" "$target_dir" 2>&1 | tee -a "$LOG_FILE"; then
-        log_success "Rollback erfolgreich: $component"
-        echo "✅ Rollback erfolgreich"
-        return 0
-    else
-        log_error "Rollback fehlgeschlagen: $component"
-        echo "❌ Rollback fehlgeschlagen!"
-        return 1
-    fi
-}
-
-cleanup_old_snapshots() {
-    local max_snapshots=5
-    if [ -d "$SNAPSHOT_DIR" ]; then
-        local snapshot_count
-        snapshot_count=$(find "$SNAPSHOT_DIR" -maxdepth 1 -type d | wc -l)
-        if [ "$snapshot_count" -gt "$max_snapshots" ]; then
-            log_info "Bereinige alte Snapshots (behalte $max_snapshots neueste)..."
-            find "$SNAPSHOT_DIR" -maxdepth 1 -type d -printf '%T@ %p\n' | sort -n | head -n -$max_snapshots | cut -d' ' -f2- | xargs rm -rf 2>/dev/null || true
-        fi
-    fi
-}
-
 # ========== Update-Zeitplanung prüfen ==========
 check_update_frequency() {
     local last_update_file
@@ -494,7 +426,6 @@ cleanup_old_logs() {
 }
 
 cleanup_old_logs
-cleanup_old_snapshots
 
 # System-Info sammeln
 collect_system_info
