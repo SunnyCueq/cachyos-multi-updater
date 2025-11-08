@@ -1,0 +1,12 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 Dokumentation (Deutsch)
+    url: https://github.com/SunnyCueq/cachyos-multi-updater/blob/main/README.de.md
+    about: Vollständige Dokumentation auf Deutsch
+  - name: 📖 Documentation (English)
+    url: https://github.com/SunnyCueq/cachyos-multi-updater/blob/main/README.md
+    about: Complete documentation in English
+  - name: 📝 Changelog
+    url: https://github.com/SunnyCueq/cachyos-multi-updater/blob/main/CHANGELOG.md
+    about: Versionshistorie und Änderungen
+
