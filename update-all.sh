@@ -5,7 +5,7 @@
 set -euo pipefail
 
 # ========== Version ==========
-readonly SCRIPT_VERSION="2.7.2"
+readonly SCRIPT_VERSION="2.7.3"
 readonly GITHUB_REPO="SunnyCueq/cachyos-multi-updater"
 
 # ========== Exit-Codes ==========
@@ -124,6 +124,10 @@ load_config() {
 load_config
 
 # ========== Module laden ==========
+if [ ! -f "$SCRIPT_DIR/lib/statistics.sh" ]; then
+    echo "Fehler: statistics.sh nicht gefunden in $SCRIPT_DIR/lib/" >&2
+    exit 1
+fi
 source "$SCRIPT_DIR/lib/statistics.sh"
 source "$SCRIPT_DIR/lib/progress.sh"
 source "$SCRIPT_DIR/lib/interactive.sh"
@@ -292,7 +296,8 @@ rollback_snapshot() {
 cleanup_old_snapshots() {
     local max_snapshots=5
     if [ -d "$SNAPSHOT_DIR" ]; then
-        local snapshot_count=$(find "$SNAPSHOT_DIR" -maxdepth 1 -type d | wc -l)
+        local snapshot_count
+        snapshot_count=$(find "$SNAPSHOT_DIR" -maxdepth 1 -type d | wc -l)
         if [ "$snapshot_count" -gt "$max_snapshots" ]; then
             log_info "Bereinige alte Snapshots (behalte $max_snapshots neueste)..."
             find "$SNAPSHOT_DIR" -maxdepth 1 -type d -printf '%T@ %p\n' | sort -n | head -n -$max_snapshots | cut -d' ' -f2- | xargs rm -rf 2>/dev/null || true
@@ -302,15 +307,18 @@ cleanup_old_snapshots() {
 
 # ========== Update-Zeitplanung prüfen ==========
 check_update_frequency() {
-    local last_update_file=$(find "$LOG_DIR" -name "update-*.log" -type f 2>/dev/null | sort -r | head -1)
+    local last_update_file
+    last_update_file=$(find "$LOG_DIR" -name "update-*.log" -type f 2>/dev/null | sort -r | head -1)
 
     if [ -z "$last_update_file" ]; then
         log_info "Kein vorheriges Update gefunden - erstes Update"
         return 0
     fi
 
-    local last_update_time=$(stat -c %Y "$last_update_file" 2>/dev/null || echo 0)
-    local current_time=$(date +%s)
+    local last_update_time
+    last_update_time=$(stat -c %Y "$last_update_file" 2>/dev/null || echo 0)
+    local current_time
+    current_time=$(date +%s)
     local days_ago=$(( (current_time - last_update_time) / 86400 ))
 
     if [ $days_ago -gt 14 ]; then
@@ -331,7 +339,8 @@ check_update_frequency() {
 # ========== Fehler-Report Generator ==========
 generate_error_report() {
     local error_type="${1:-Unbekannt}"
-    local error_file="$LOG_DIR/error-report-$(date +%Y%m%d-%H%M%S).txt"
+    local error_file
+    error_file="$LOG_DIR/error-report-$(date +%Y%m%d-%H%M%S).txt"
 
     {
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -401,7 +410,8 @@ log() {
     local level="$1"
     shift
     local message="$*"
-    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    local timestamp
+    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     echo "[$timestamp] [$level] $message" | tee -a "$LOG_FILE"
 }
 
@@ -431,6 +441,11 @@ cleanup_on_error() {
     if [ $exit_code -ne 0 ]; then
         log_error "Script wurde mit Fehler beendet (Exit-Code: $exit_code)"
         notify-send "Update fehlgeschlagen!" "Bitte Logs prüfen: $LOG_FILE" 2>/dev/null || true
+        # Terminal offen halten bei Fehlern
+        if [ -t 0 ] && [ -t 1 ]; then
+            echo ""
+            read -p "Drücke Enter zum Beenden..." || true
+        fi
     fi
     return $exit_code
 }
@@ -465,9 +480,12 @@ get_cached_version() {
     local cache_key="$1"
     local cache_file="$CACHE_DIR/${cache_key}_version.cache"
     if [ -f "$cache_file" ]; then
-        local cache_time=$(head -1 "$cache_file" 2>/dev/null || echo "0")
-        local cached_version=$(tail -n +2 "$cache_file" 2>/dev/null || echo "")
-        local current_time=$(date +%s)
+        local cache_time
+        cache_time=$(head -1 "$cache_file" 2>/dev/null || echo "0")
+        local cached_version
+        cached_version=$(tail -n +2 "$cache_file" 2>/dev/null || echo "")
+        local current_time
+        current_time=$(date +%s)
         if [ -n "$cached_version" ] && [ $((current_time - cache_time)) -lt $CACHE_MAX_AGE ]; then
             echo "$cached_version"
         fi
@@ -650,6 +668,7 @@ if [ "$UPDATE_CURSOR" = "true" ]; then
             log_info "Prüfe verfügbare Cursor-Version..."
             echo "🔍 Prüfe verfügbare Version..."
             LATEST_VERSION_INFO=$(curl -sL "https://api2.cursor.sh/updates/check?platform=linux-x64-deb&version=$CURRENT_VERSION" 2>/dev/null || echo "")
+            SKIP_DOWNLOAD=false
             if [ -n "$LATEST_VERSION_INFO" ]; then
                 LATEST_VERSION=$(echo "$LATEST_VERSION_INFO" | grep -oP '"version":\s*"\K[0-9.]+' | head -1 || echo "")
                 if [ -n "$LATEST_VERSION" ] && [ "$LATEST_VERSION" != "$CURRENT_VERSION" ]; then
@@ -658,13 +677,20 @@ if [ "$UPDATE_CURSOR" = "true" ]; then
                 elif [ "$LATEST_VERSION" = "$CURRENT_VERSION" ]; then
                     echo "✅ Cursor ist bereits auf dem neuesten Stand ($CURRENT_VERSION)"
                     log_info "Cursor ist bereits aktuell, Update übersprungen"
+                    SKIP_DOWNLOAD=true
                 else
                     echo "⚠️  Versionsprüfung fehlgeschlagen, fahre mit Update fort..."
                     log_warning "Versionsprüfung fehlgeschlagen"
                 fi
             fi
             
-            # Download .deb in Script-Ordner
+            # Überspringe Download wenn bereits aktuell
+            if [ "$SKIP_DOWNLOAD" = "true" ]; then
+                log_info "Cursor-Update übersprungen (bereits aktuell)"
+                echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                echo ""
+            else
+                # Download .deb in Script-Ordner
             DEB_FILE="$SCRIPT_DIR/cursor_latest_amd64.deb"
             DOWNLOAD_URL="https://api2.cursor.sh/updates/download/golden/linux-x64-deb/cursor/2.0"
             
@@ -697,7 +723,7 @@ if [ "$UPDATE_CURSOR" = "true" ]; then
                     
                     # Extrahiere .deb
                     extract_dir=$(mktemp -d -t cursor-extract.XXXXXXXXXX)
-                    trap "rm -rf '$extract_dir' '$DEB_FILE'" EXIT
+                    trap 'rm -rf "$extract_dir" "$DEB_FILE"' EXIT
                     
                     log_info "Extrahiere Cursor .deb..."
                     echo "📦 Extrahiere .deb-Archiv..."
@@ -743,7 +769,8 @@ if [ "$UPDATE_CURSOR" = "true" ]; then
                             fi
                         fi
 
-                        # Cleanup IMMER durchführen
+                        # Cleanup IMMER durchführen (trap entfernen vor cleanup)
+                        trap - EXIT
                         log_info "Bereinige temporäre Dateien..."
                         rm -rf "$extract_dir" "$DEB_FILE"
                         log_info "Temporäre Dateien gelöscht"
@@ -782,7 +809,7 @@ if [ "$UPDATE_ADGUARD" = "true" ]; then
     echo "🛡️ AdGuardHome updaten..."
     agh_dir="$HOME/AdGuardHome"
     temp_dir=$(mktemp -d -t adguard-update.XXXXXXXXXX)
-    trap "rm -rf '$temp_dir'" EXIT
+    trap 'rm -rf "$temp_dir"' EXIT
     
     if [ "$DRY_RUN" = "true" ]; then
         if [[ -f "$agh_dir/AdGuardHome" ]]; then
@@ -875,7 +902,12 @@ else
     log_info "Starte System-Cleanup..."
     echo "🧹 Cleanup..."
     paccache -rk3 2>&1 | tee -a "$LOG_FILE" || log_warning "Paccache fehlgeschlagen"
-    sudo pacman -Rns $(pacman -Qtdq) 2>/dev/null 2>&1 | tee -a "$LOG_FILE" || log_warning "Orphan-Pakete konnten nicht entfernt werden"
+    orphans=$(pacman -Qtdq 2>/dev/null || true)
+    if [[ -n "$orphans" ]]; then
+        sudo pacman -Rns $orphans 2>&1 | tee -a "$LOG_FILE" || log_warning "Orphan-Pakete konnten nicht entfernt werden"
+    else
+        log_info "Keine Orphan-Pakete gefunden"
+    fi
 fi
 
 # ========== Zusammenfassung ==========
@@ -1069,4 +1101,10 @@ check_script_update() {
 check_script_update
 
 log_info "Update-Script erfolgreich beendet"
+
+# Terminal offen halten wenn interaktiv (auch bei Desktop-Icon)
+if [ -t 0 ] && [ -t 1 ]; then
+    echo ""
+    read -p "Drücke Enter zum Beenden..." || true
+fi
 
