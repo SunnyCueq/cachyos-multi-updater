@@ -70,7 +70,7 @@ fi
 
 # Lock-File erstellen
 touch "$LOCK_FILE"
-trap "rm -f $LOCK_FILE" EXIT
+trap "rm -f \"$LOCK_FILE\"" EXIT
 
 # ========== Config-Validierung ==========
 validate_config_value() {
