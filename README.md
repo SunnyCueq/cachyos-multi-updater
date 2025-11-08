@@ -1,5 +1,10 @@
 # CachyOS Multi-Updater
 
+> ⚠️ **EXPERIMENTAL - CURRENTLY NOT STABLE**
+> The script is under active development and may not work correctly.
+> Desktop icon functionality is being debugged.
+> Use at your own risk! See [Issues](https://github.com/SunnyCueq/cachyos-multi-updater/issues) for current status.
+
 > **Language / Sprache:** [🇬🇧 English](README.md) | [🇩🇪 Deutsch](README.de.md)
 
 A simple one-click update tool for CachyOS that automatically updates system packages, AUR packages, Cursor editor, and AdGuard Home.

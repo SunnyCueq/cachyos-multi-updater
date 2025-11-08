@@ -14,11 +14,16 @@ save_stats() {
     local duration="$1"
     local success="$2"
 
-    local stats=$(load_stats)
-    local total_updates=$(echo "$stats" | grep -oP '"total_updates":\s*\K[0-9]+' || echo "0")
-    local total_duration=$(echo "$stats" | grep -oP '"total_duration":\s*\K[0-9]+' || echo "0")
-    local successful=$(echo "$stats" | grep -oP '"successful_updates":\s*\K[0-9]+' || echo "0")
-    local failed=$(echo "$stats" | grep -oP '"failed_updates":\s*\K[0-9]+' || echo "0")
+    local stats
+    stats=$(load_stats)
+    local total_updates
+    total_updates=$(echo "$stats" | grep -oP '"total_updates":\s*\K[0-9]+' || echo "0")
+    local total_duration
+    total_duration=$(echo "$stats" | grep -oP '"total_duration":\s*\K[0-9]+' || echo "0")
+    local successful
+    successful=$(echo "$stats" | grep -oP '"successful_updates":\s*\K[0-9]+' || echo "0")
+    local failed
+    failed=$(echo "$stats" | grep -oP '"failed_updates":\s*\K[0-9]+' || echo "0")
 
     total_updates=$((total_updates + 1))
     total_duration=$((total_duration + duration))
