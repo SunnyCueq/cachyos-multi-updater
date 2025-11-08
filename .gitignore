@@ -1,0 +1,25 @@
+# Log-Dateien
+logs/
+*.log
+
+# Temporäre Cursor-Dateien
+cursor_latest_amd64.deb
+cursor-extract/
+
+# Temporäre AdGuard-Dateien
+/tmp/AdGuardHome-*
+
+# Backup-Verzeichnisse
+*-backup-*
+
+# Editor-Dateien
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# OS-Dateien
+.DS_Store
+Thumbs.db
+
