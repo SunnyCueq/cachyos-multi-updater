@@ -1,9 +1,9 @@
 # CachyOS Multi-Updater
 
-> ⚠️ **EXPERIMENTAL - CURRENTLY NOT STABLE**
-> The script is under active development and may not work correctly.
-> Desktop icon functionality is being debugged.
-> Use at your own risk! See [Issues](https://github.com/SunnyCueq/cachyos-multi-updater/issues) for current status.
+> ✅ **STABLE RELEASE v2.8.0**
+> The script is production-ready and fully tested.
+> All features are working correctly, including desktop integration.
+> See [Changelog](CHANGELOG.md) for version history.
 
 > **Language / Sprache:** [🇬🇧 English](README.md) | [🇩🇪 Deutsch](README.de.md)
 
@@ -85,14 +85,14 @@ This script automatically updates four different things on your system:
 
 **What happens during update?**
 1. The script checks your current Cursor version (from package.json)
-2. Downloads the latest .deb file from Cursor's official servers (needed for version check)
-3. Extracts the version from the .deb file BEFORE installation
-4. Compares versions - if already up-to-date, skips installation and deletes the .deb file
-5. If update needed, installs the new version
+2. Checks the latest available version via HTTP HEAD request (no download needed!)
+3. Extracts the version from the Location header (`cursor_2.0.69_amd64.deb` → `2.0.69`)
+4. Compares versions - if already up-to-date, skips download and installation completely
+5. If update needed, downloads and installs the new version
 6. The .deb file is automatically deleted after installation
 7. You can manually restart Cursor if it was running
 
-**Note:** The download is necessary because the version can only be extracted from the .deb file. However, if the version is already up-to-date, the .deb file is immediately deleted without installation.
+**Note:** The version check uses an HTTP HEAD request (only a few KB) instead of downloading the entire .deb file (132MB). This makes the check much faster and saves bandwidth. If the HTTP HEAD request fails, the script falls back to the old method (download + extraction).
 
 **Note:** The script does NOT automatically close or restart Cursor. If Cursor is running, you may want to close it manually before running the update for a clean installation.
 

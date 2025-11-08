@@ -77,15 +77,15 @@ Ein Bash-Script für CachyOS Linux, das mit einem Klick mehrere Komponenten aktu
 
 ## Aktuelle Version
 
-**2.7.6**
+**2.8.0** (STABLE RELEASE)
 
 Letzte größere Änderungen:
-- **Cursor-Versionsprüfung funktioniert perfekt:** Version wird aus .deb extrahiert VOR Installation
-  - Download ist nötig für Versionsprüfung (Version wird aus .deb extrahiert)
-  - Extrahiert aus `./usr/share/cursor/resources/app/package.json` im .deb-Archiv
-  - .deb wird automatisch gelöscht wenn Version gleich ist
-  - Verhindert unnötige Installationen wenn bereits aktuell
-  - Nutzt offiziellen Download-Link von cursor.com
+- **🎉 STABLE RELEASE v2.8.0:** Erste stabile Version - produktionsreif und vollständig getestet
+- **Cursor-Versionsprüfung OHNE Download:** HTTP HEAD Request statt vollständigem Download
+  - Version wird aus Location-Header extrahiert (`cursor_2.0.69_amd64.deb` → `2.0.69`)
+  - Download nur wenn Update verfügbar ist (132MB → wenige KB)
+  - Deutlich schneller und spart Bandbreite
+  - Fallback: Alte Methode (Download + Extraktion) wenn HTTP HEAD fehlschlägt
 - **AdGuard Home Versionsprüfung funktioniert perfekt:** Nutzt GitHub Releases API
   - Prüft Version VOR Download, überspringt Download wenn aktuell
   - Nutzt offiziellen Download-Link von AdGuard

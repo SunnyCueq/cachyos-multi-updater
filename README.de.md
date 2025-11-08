@@ -1,9 +1,9 @@
 # CachyOS Multi-Updater
 
-> ⚠️ **EXPERIMENTELL - AKTUELL NICHT STABIL**
-> Das Script befindet sich in aktiver Entwicklung und funktioniert möglicherweise nicht korrekt.
-> Desktop-Icon Funktionalität wird gerade debuggt.
-> Verwendung auf eigene Gefahr! Siehe [Issues](https://github.com/SunnyCueq/cachyos-multi-updater/issues) für aktuellen Status.
+> ✅ **STABILE VERSION v2.8.0**
+> Das Script ist produktionsreif und vollständig getestet.
+> Alle Features funktionieren korrekt, inklusive Desktop-Integration.
+> Siehe [Changelog](CHANGELOG.md) für Versionshistorie.
 
 > **Sprache / Language:** [🇩🇪 Deutsch](README.de.md) | [🇬🇧 English](README.md)
 
@@ -86,14 +86,14 @@ Dieses Script aktualisiert automatisch vier verschiedene Dinge auf deinem System
 
 **Was passiert während des Updates?**
 1. Das Script prüft deine aktuelle Cursor-Version (aus package.json)
-2. Lädt die neueste .deb-Datei von Cursors offiziellen Servern herunter (nötig für Versionsprüfung)
-3. Extrahiert die Version aus der .deb-Datei VOR der Installation
-4. Vergleicht Versionen - wenn bereits aktuell, überspringt Installation und löscht die .deb-Datei
-5. Wenn Update nötig, installiert die neue Version
+2. Prüft die neueste verfügbare Version via HTTP HEAD Request (kein Download nötig!)
+3. Extrahiert die Version aus dem Location-Header (`cursor_2.0.69_amd64.deb` → `2.0.69`)
+4. Vergleicht Versionen - wenn bereits aktuell, überspringt Download und Installation komplett
+5. Wenn Update nötig, lädt und installiert die neue Version
 6. Die .deb-Datei wird automatisch nach der Installation gelöscht
 7. Du kannst Cursor manuell neu starten, falls es gelaufen ist
 
-**Hinweis:** Der Download ist nötig, da die Version nur aus der .deb-Datei extrahiert werden kann. Wenn die Version jedoch bereits aktuell ist, wird die .deb-Datei sofort gelöscht ohne Installation.
+**Hinweis:** Die Versionsprüfung nutzt einen HTTP HEAD Request (nur wenige KB) statt die gesamte .deb-Datei (132MB) herunterzuladen. Das macht die Prüfung deutlich schneller und spart Bandbreite. Falls der HTTP HEAD Request fehlschlägt, nutzt das Script die alte Methode (Download + Extraktion) als Fallback.
 
 **Hinweis:** Das Script schließt oder startet Cursor NICHT automatisch. Falls Cursor läuft, solltest du es manuell schließen, bevor du das Update ausführst, für eine saubere Installation.
 

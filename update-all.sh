@@ -5,7 +5,7 @@
 set -euo pipefail
 
 # ========== Version ==========
-readonly SCRIPT_VERSION="2.7.7"
+readonly SCRIPT_VERSION="2.8.0"
 readonly GITHUB_REPO="SunnyCueq/cachyos-multi-updater"
 
 # ========== Exit-Codes ==========
