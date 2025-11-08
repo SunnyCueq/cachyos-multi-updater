@@ -1,10 +1,5 @@
 # CachyOS Multi-Updater
 
-> ✅ **STABILE VERSION v2.8.0**
-> Das Script ist produktionsreif und vollständig getestet.
-> Alle Features funktionieren korrekt, inklusive Desktop-Integration.
-> Siehe [Changelog](CHANGELOG.md) für Versionshistorie.
-
 > **Sprache / Language:** [🇩🇪 Deutsch](README.de.md) | [🇬🇧 English](README.md)
 
 Ein einfaches One-Click-Update-Tool für CachyOS, das automatisch System-Pakete, AUR-Pakete, den Cursor Editor und AdGuard Home aktualisiert.
