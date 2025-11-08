@@ -1,5 +1,5 @@
 ---
-name: Feature Request
+name: 💡 Feature-Anfrage (Deutsch)
 about: Ein neues Feature vorschlagen
 title: '[FEATURE] '
 labels: enhancement

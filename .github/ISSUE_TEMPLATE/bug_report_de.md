@@ -1,5 +1,5 @@
 ---
-name: Bug Report
+name: 🐛 Fehlerbericht (Deutsch)
 about: Einen Fehler melden
 title: '[BUG] '
 labels: bug
@@ -31,10 +31,12 @@ Bitte füge relevante Log-Auszüge hinzu:
 [Füge hier Log-Auszüge ein]
 ```
 
+**Log-Datei:** `logs/update-YYYYMMDD-HHMMSS.log`
+
 ## 💻 System-Informationen
 
 - **OS:** CachyOS / Arch Linux
-- **Script-Version:** `./update-all.sh --version`
+- **Script-Version:** `./update-all.sh` (Zeile 8: SCRIPT_VERSION)
 - **AUR-Helper:** yay / paru / keiner
 - **Cursor installiert:** ja / nein
 - **AdGuard Home installiert:** ja / nein
@@ -46,4 +48,11 @@ Falls zutreffend, füge Screenshots hinzu, um das Problem zu erklären.
 ## 🔍 Zusätzlicher Kontext
 
 Füge hier jeden anderen Kontext zum Problem hinzu.
+
+## ✅ Checkliste
+
+- [ ] Ich habe die README gelesen
+- [ ] Ich habe die bestehenden Issues durchgesehen
+- [ ] Ich habe die Log-Dateien geprüft
+- [ ] Ich habe alle relevanten Informationen bereitgestellt
 
