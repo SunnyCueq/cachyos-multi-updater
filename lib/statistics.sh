@@ -52,12 +52,18 @@ show_stats() {
         return 0
     fi
 
-    local stats=$(load_stats)
-    local total_updates=$(echo "$stats" | grep -oP '"total_updates":\s*\K[0-9]+' || echo "0")
-    local avg_duration=$(echo "$stats" | grep -oP '"avg_duration":\s*\K[0-9]+' || echo "0")
-    local successful=$(echo "$stats" | grep -oP '"successful_updates":\s*\K[0-9]+' || echo "0")
-    local failed=$(echo "$stats" | grep -oP '"failed_updates":\s*\K[0-9]+' || echo "0")
-    local last_update=$(echo "$stats" | grep -oP '"last_update":\s*"\K[^"]+' || echo "Nie")
+    local stats
+    stats=$(load_stats)
+    local total_updates
+    total_updates=$(echo "$stats" | grep -oP '"total_updates":\s*\K[0-9]+' || echo "0")
+    local avg_duration
+    avg_duration=$(echo "$stats" | grep -oP '"avg_duration":\s*\K[0-9]+' || echo "0")
+    local successful
+    successful=$(echo "$stats" | grep -oP '"successful_updates":\s*\K[0-9]+' || echo "0")
+    local failed
+    failed=$(echo "$stats" | grep -oP '"failed_updates":\s*\K[0-9]+' || echo "0")
+    local last_update
+    last_update=$(echo "$stats" | grep -oP '"last_update":\s*"\K[^"]+' || echo "Nie")
 
     local success_rate=0
     if [ "$total_updates" -gt 0 ]; then
@@ -83,9 +89,12 @@ estimate_duration() {
         return 0
     fi
 
-    local stats=$(load_stats)
-    local avg_duration=$(echo "$stats" | grep -oP '"avg_duration":\s*\K[0-9]+' || echo "0")
-    local total_updates=$(echo "$stats" | grep -oP '"total_updates":\s*\K[0-9]+' || echo "0")
+    local stats
+    stats=$(load_stats)
+    local avg_duration
+    avg_duration=$(echo "$stats" | grep -oP '"avg_duration":\s*\K[0-9]+' || echo "0")
+    local total_updates
+    total_updates=$(echo "$stats" | grep -oP '"total_updates":\s*\K[0-9]+' || echo "0")
 
     if [ "$avg_duration" -gt 0 ] && [ "$total_updates" -ge 3 ]; then
         local minutes=$((avg_duration / 60))

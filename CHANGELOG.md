@@ -5,6 +5,22 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/),
 und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [2.7.2] - 2025-11-08
+
+### Entfernt
+- **🔒 Lock-File Mechanismus entfernt**
+  - Verursachte nur Probleme (vor allem in CI/CD)
+  - User können das Script jetzt problemlos mehrfach starten
+  - Einfachheit über Komplexität!
+
+### Behoben
+- **🐛 Desktop-Icon schließt sofort:** sudo-Passwort wird jetzt VOR den Updates abgefragt
+  - `sudo -v` vor dem eigentlichen Update
+  - Verhindert dass Terminal sofort schließt wenn Passwort benötigt wird
+- **🔧 ShellCheck Warnings (SC2155):** Variable declaration und assignment getrennt
+  - In `lib/statistics.sh` an 4 Stellen gefixt
+  - Verhindert dass Return-Values maskiert werden
+
 ## [2.7.1] - 2025-11-08
 
 ### Behoben

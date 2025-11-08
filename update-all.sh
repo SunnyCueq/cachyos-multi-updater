@@ -5,7 +5,7 @@
 set -euo pipefail
 
 # ========== Version ==========
-readonly SCRIPT_VERSION="2.7.1"
+readonly SCRIPT_VERSION="2.7.2"
 readonly GITHUB_REPO="SunnyCueq/cachyos-multi-updater"
 
 # ========== Exit-Codes ==========
@@ -20,7 +20,6 @@ readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly LOG_DIR="$SCRIPT_DIR/logs"
 readonly LOG_FILE="$LOG_DIR/update-$(date +%Y%m%d-%H%M%S).log"
 MAX_LOG_FILES=10
-readonly LOCK_FILE="$SCRIPT_DIR/.update-all.lock"
 readonly CONFIG_FILE="$SCRIPT_DIR/config.conf"
 
 # Default-Werte
@@ -60,17 +59,6 @@ mkdir -p "$STATS_DIR"
 # Log-Verzeichnis erstellen
 mkdir -p "$LOG_DIR"
 mkdir -p "$CACHE_DIR"
-
-# ========== Lock-File prüfen ==========
-if [ -f "$LOCK_FILE" ]; then
-    echo "❌ Update läuft bereits! Lock-File gefunden: $LOCK_FILE"
-    echo "   Falls kein Update läuft, lösche die Lock-Datei manuell."
-    exit $EXIT_LOCK_EXISTS
-fi
-
-# Lock-File erstellen
-touch "$LOCK_FILE"
-trap "rm -f \"$LOCK_FILE\"" EXIT
 
 # ========== Config-Validierung ==========
 validate_config_value() {
@@ -521,6 +509,15 @@ estimate_duration
 
 echo -e "${COLOR_BOLD}🛡️  Update gestartet... (Passwort für sudo eingeben)${COLOR_RESET}"
 echo ""
+
+# Passwort-Abfrage VOR den Updates (damit Desktop-Icon funktioniert)
+if [ "$DRY_RUN" != "true" ]; then
+    sudo -v || {
+        log_error "Sudo-Authentifizierung fehlgeschlagen"
+        echo "❌ Sudo-Authentifizierung fehlgeschlagen!"
+        exit $EXIT_UPDATE_ERROR
+    }
+fi
 
 # Berechne Gesamtschritte für Fortschritts-Anzeige
 TOTAL_STEPS=$(calculate_total_steps)

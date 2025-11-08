@@ -72,9 +72,11 @@ Ein Bash-Script für CachyOS Linux, das mit einem Klick mehrere Komponenten aktu
 
 ## Aktuelle Version
 
-**2.7.1** (nächste Version nach Bugfixes)
+**2.7.2**
 
 Letzte größere Änderungen:
-- Bugfixes: `local` außerhalb von Funktionen, while-loop + set -e Konflikt, trap mit Leerzeichen
+- Lock-File Mechanismus entfernt (verursachte Probleme)
+- Desktop-Icon Fix: sudo -v vor Updates (Passwort-Abfrage)
+- ShellCheck SC2155 Warnings behoben
+- Bugfixes: `local` außerhalb von Funktionen, while-loop + set -e Konflikt
 - Cleanup: RELEASE-GUIDE.md entfernt, Changelog aus README verschoben
-- Regeln: .claude/ und .cursorrules aktualisiert
