@@ -238,7 +238,11 @@ Bevor du es wirklich verwendest, teste, ob es funktioniert:
 
 ### Schritt 4: Desktop-Verknüpfung installieren (optional)
 
-**Was ist eine Desktop-Verknüpfung?** Es ist ein Icon im Anwendungsmenü, auf das du klicken kannst, um das Script auszuführen, ohne Terminal zu öffnen.
+**Was ist eine Desktop-Verknüpfung?** Es ist ein Icon im Anwendungsmenü (und optional auf deinem Desktop), auf das du klicken kannst, um das Script auszuführen, ohne Terminal zu öffnen.
+
+#### Option A: Anwendungsmenü-Icon (Empfohlen)
+
+Dies erstellt ein Icon im Anwendungsmenü:
 
 1. Kopiere die Desktop-Datei in deinen Anwendungsordner:
    ```bash
@@ -272,10 +276,78 @@ Bevor du es wirklich verwendest, teste, ob es funktioniert:
    ```
 
 7. Teste es:
-   - Öffne dein Anwendungsmenü
+   - Öffne dein Anwendungsmenü (normalerweise durch Drücken der Super/Windows-Taste)
    - Suche nach "Update All"
    - Klicke darauf
    - Ein Terminal sollte sich öffnen und das Script sollte starten
+
+#### Option B: Desktop-Icon (Sichtbar auf dem Desktop)
+
+Um das Icon direkt auf deinem Desktop anzuzeigen:
+
+1. Folge den Schritten 1-6 von Option A oben
+
+2. Kopiere die Desktop-Datei auf deinen Desktop:
+   ```bash
+   cp ~/.local/share/applications/update-all.desktop ~/Desktop/
+   ```
+   Oder wenn dein Desktop an einem anderen Ort ist:
+   ```bash
+   cp ~/.local/share/applications/update-all.desktop ~/Schreibtisch/  # Deutsch
+   cp ~/.local/share/applications/update-all.desktop ~/Desktop/        # Englisch
+   ```
+
+3. Mache es ausführbar:
+   ```bash
+   chmod +x ~/Desktop/update-all.desktop
+   ```
+
+4. Das Icon sollte jetzt auf deinem Desktop erscheinen. Du kannst darauf doppelklicken, um das Script auszuführen.
+
+**Hinweis:** Einige Desktop-Umgebungen erfordern möglicherweise, dass du "Anwendungen starten erlauben" in den Desktop-Einstellungen aktivierst, damit Icons funktionieren.
+
+#### Icon ändern
+
+Die Desktop-Datei verwendet standardmäßig ein System-Icon (`system-software-update`). Um es zu ändern:
+
+1. Öffne die Desktop-Datei:
+   ```bash
+   nano ~/.local/share/applications/update-all.desktop
+   ```
+
+2. Finde die Zeile:
+   ```ini
+   Icon=system-software-update
+   ```
+
+3. Ersetze sie mit einer dieser Optionen:
+
+   **Option 1: System-Icon-Name verwenden**
+   ```ini
+   Icon=system-software-update
+   Icon=system-update
+   Icon=software-update-available
+   Icon=update-manager
+   ```
+   (Häufige Icon-Namen auf Linux-Systemen)
+
+   **Option 2: Benutzerdefinierte Icon-Datei verwenden**
+   ```ini
+   Icon=/pfad/zum/deinem/icon.png
+   ```
+   Zum Beispiel:
+   ```ini
+   Icon=/home/deinbenutzername/Bilder/mein-update-icon.png
+   ```
+
+   **Option 3: Icon aus dem Script-Verzeichnis verwenden**
+   ```ini
+   Icon=/home/deinbenutzername/cachyos-multi-updater/icon.png
+   ```
+
+4. Speichere und beende (Strg+O, Enter, Strg+X)
+
+5. Aktualisiere den Desktop (oder melde dich ab und wieder an), um das neue Icon zu sehen
 
 **Wie finde ich meinen Benutzernamen?**
 - Tippe `whoami` im Terminal

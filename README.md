@@ -234,7 +234,11 @@ Before using it for real, test that it works:
 
 ### Step 4: Install desktop shortcut (optional)
 
-**What is a desktop shortcut?** It's an icon in your application menu that you can click to run the script without opening terminal.
+**What is a desktop shortcut?** It's an icon in your application menu (and optionally on your desktop) that you can click to run the script without opening terminal.
+
+#### Option A: Application Menu Icon (Recommended)
+
+This creates an icon in your application menu:
 
 1. Copy the desktop file to your applications folder:
    ```bash
@@ -268,10 +272,78 @@ Before using it for real, test that it works:
    ```
 
 7. Test it:
-   - Open your application menu
+   - Open your application menu (usually by pressing the Super/Windows key)
    - Search for "Update All"
    - Click on it
    - A terminal should open and the script should start
+
+#### Option B: Desktop Icon (Visible on Desktop)
+
+To show the icon directly on your desktop:
+
+1. Follow steps 1-6 from Option A above
+
+2. Copy the desktop file to your desktop:
+   ```bash
+   cp ~/.local/share/applications/update-all.desktop ~/Desktop/
+   ```
+   Or if your desktop is in a different location:
+   ```bash
+   cp ~/.local/share/applications/update-all.desktop ~/Schreibtisch/  # German
+   cp ~/.local/share/applications/update-all.desktop ~/Desktop/        # English
+   ```
+
+3. Make it executable:
+   ```bash
+   chmod +x ~/Desktop/update-all.desktop
+   ```
+
+4. The icon should now appear on your desktop. You can double-click it to run the script.
+
+**Note:** Some desktop environments may require you to enable "Allow launching applications" in desktop settings for icons to work.
+
+#### Changing the Icon
+
+The desktop file uses a system icon by default (`system-software-update`). To change it:
+
+1. Open the desktop file:
+   ```bash
+   nano ~/.local/share/applications/update-all.desktop
+   ```
+
+2. Find the line:
+   ```ini
+   Icon=system-software-update
+   ```
+
+3. Replace it with one of these options:
+
+   **Option 1: Use a system icon name**
+   ```ini
+   Icon=system-software-update
+   Icon=system-update
+   Icon=software-update-available
+   Icon=update-manager
+   ```
+   (Common icon names on Linux systems)
+
+   **Option 2: Use a custom icon file**
+   ```ini
+   Icon=/path/to/your/icon.png
+   ```
+   For example:
+   ```ini
+   Icon=/home/yourusername/Pictures/my-update-icon.png
+   ```
+
+   **Option 3: Use an icon from the script directory**
+   ```ini
+   Icon=/home/yourusername/cachyos-multi-updater/icon.png
+   ```
+
+4. Save and exit (Ctrl+O, Enter, Ctrl+X)
+
+5. Refresh the desktop (or log out and back in) to see the new icon
 
 **How to find your username?**
 - Type `whoami` in terminal

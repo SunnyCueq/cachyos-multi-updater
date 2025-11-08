@@ -573,24 +573,49 @@ check_script_update() {
     fi
     
     log_info "Prüfe auf Script-Updates..."
-    LATEST_VERSION=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases/latest" | grep -oP '"tag_name":\s*"v?\K[0-9.]+' | head -1 || echo "")
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "🔍 Script-Version prüfen..."
+    
+    # Versuche zuerst Releases, dann Tags
+    LATEST_VERSION=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases/latest" 2>/dev/null | grep -oP '"tag_name":\s*"v?\K[0-9.]+' | head -1 || echo "")
+    
+    # Falls kein Release, prüfe Tags direkt
+    if [ -z "$LATEST_VERSION" ]; then
+        LATEST_VERSION=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/git/refs/tags" 2>/dev/null | grep -oP '"ref":\s*"refs/tags/v?\K[0-9.]+' | sort -V | tail -1 || echo "")
+    fi
     
     if [ -z "$LATEST_VERSION" ]; then
         log_warning "Konnte neueste Version nicht abrufen"
+        echo "⚠️  Versionsprüfung fehlgeschlagen (keine Internetverbindung?)"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         return 0
     fi
     
     # Entferne 'v' Präfix falls vorhanden
     LATEST_VERSION=$(echo "$LATEST_VERSION" | sed 's/^v//')
     
+    # Versionsvergleich (Semantic Versioning wie WoltLab: Major.Minor.Patch)
     if [ "$LATEST_VERSION" != "$SCRIPT_VERSION" ]; then
-        log_warning "Neue Script-Version verfügbar: $SCRIPT_VERSION → $LATEST_VERSION"
-        echo "⚠️  Neue Script-Version verfügbar: $SCRIPT_VERSION → $LATEST_VERSION"
-        echo "   Update: git pull (im Script-Verzeichnis)"
-        echo "   Oder: https://github.com/$GITHUB_REPO/releases/latest"
+        # Prüfe ob neue Version wirklich neuer ist (semantischer Vergleich)
+        if printf '%s\n%s\n' "$SCRIPT_VERSION" "$LATEST_VERSION" | sort -V | head -1 | grep -q "^$SCRIPT_VERSION$"; then
+            log_warning "Neue Script-Version verfügbar: $SCRIPT_VERSION → $LATEST_VERSION"
+            echo "⚠️  Neue Script-Version verfügbar: $SCRIPT_VERSION → $LATEST_VERSION"
+            echo ""
+            echo "   Update-Optionen:"
+            echo "   1. Git: cd $(dirname "$SCRIPT_DIR")/cachyos-multi-updater && git pull"
+            echo "   2. Download: https://github.com/$GITHUB_REPO/releases/latest"
+            echo "   3. ZIP: https://github.com/$GITHUB_REPO/archive/refs/tags/v$LATEST_VERSION.zip"
+        else
+            log_info "Lokale Version ist neuer als GitHub-Version (Entwicklung?)"
+            echo "ℹ️  Lokale Version: $SCRIPT_VERSION (GitHub: $LATEST_VERSION)"
+        fi
     else
         log_info "Script ist auf dem neuesten Stand (Version $SCRIPT_VERSION)"
+        echo "✅ Script ist aktuell (Version $SCRIPT_VERSION)"
     fi
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
 }
 
 check_script_update
