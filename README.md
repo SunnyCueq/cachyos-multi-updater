@@ -84,11 +84,15 @@ This script automatically updates four different things on your system:
 **What is Cursor?** Cursor is a code editor (like VS Code) with AI features. If you have it installed, this script will keep it updated.
 
 **What happens during update?**
-1. The script checks your current Cursor version
-2. Checks if a newer version is available
-3. Downloads the latest version from Cursor's servers (if needed)
-4. Installs the new version
-5. You can manually restart Cursor if it was running
+1. The script checks your current Cursor version (from package.json)
+2. Downloads the latest .deb file from Cursor's official servers (needed for version check)
+3. Extracts the version from the .deb file BEFORE installation
+4. Compares versions - if already up-to-date, skips installation and deletes the .deb file
+5. If update needed, installs the new version
+6. The .deb file is automatically deleted after installation
+7. You can manually restart Cursor if it was running
+
+**Note:** The download is necessary because the version can only be extracted from the .deb file. However, if the version is already up-to-date, the .deb file is immediately deleted without installation.
 
 **Note:** The script does NOT automatically close or restart Cursor. If Cursor is running, you may want to close it manually before running the update for a clean installation.
 
@@ -97,11 +101,15 @@ This script automatically updates four different things on your system:
 **What is AdGuard Home?** AdGuard Home is a network-wide ad blocker and DNS server. It blocks ads and trackers for all devices on your network.
 
 **What happens during update?**
-1. The script stops the AdGuard Home service
-2. Downloads the latest version
-3. Backs up your configuration
-4. Installs the new version
-5. Restarts the service
+1. Checks current version
+2. Checks latest version via GitHub Releases API
+3. If already up-to-date, skips download
+4. If update needed:
+   - Stops the AdGuard Home service
+   - Downloads the latest version from official AdGuard servers
+   - Backs up your configuration
+   - Installs the new version
+   - Restarts the service
 
 **Important:** AdGuard Home must be installed in `~/AdGuardHome` (in your home directory).
 

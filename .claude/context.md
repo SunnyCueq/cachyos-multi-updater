@@ -77,12 +77,27 @@ Ein Bash-Script für CachyOS Linux, das mit einem Klick mehrere Komponenten aktu
 
 ## Aktuelle Version
 
-**2.7.5**
+**2.7.6**
 
 Letzte größere Änderungen:
-- Setup-Script (`setup.sh`) für Erstinstallation hinzugefügt
-- Cursor `--version` Aufrufe komplett entfernt (öffnete Cursor ungewollt)
-- Versionsprüfung nur noch über package.json (mit Fallback für alternative Pfade)
-- Desktop-Verknüpfung unterstützt jetzt Update-Modi (--dry-run, --interactive, --auto)
-- GitHub Actions Version-Check funktioniert korrekt
-- Dokumentation aktualisiert (README, Rules, Context, Improvements)
+- **Cursor-Versionsprüfung funktioniert perfekt:** Version wird aus .deb extrahiert VOR Installation
+  - Download ist nötig für Versionsprüfung (Version wird aus .deb extrahiert)
+  - Extrahiert aus `./usr/share/cursor/resources/app/package.json` im .deb-Archiv
+  - .deb wird automatisch gelöscht wenn Version gleich ist
+  - Verhindert unnötige Installationen wenn bereits aktuell
+  - Nutzt offiziellen Download-Link von cursor.com
+- **AdGuard Home Versionsprüfung funktioniert perfekt:** Nutzt GitHub Releases API
+  - Prüft Version VOR Download, überspringt Download wenn aktuell
+  - Nutzt offiziellen Download-Link von AdGuard
+- **Desktop-Integration:** Wrapper-Scripts für zuverlässiges Terminal offen halten
+  - `run-update.sh` - hält Terminal offen
+  - `launch-update.sh` - Parameter-Handling
+  - `konsole --hold` für KDE/Plasma
+  - **WICHTIG:** Desktop-Icon wird NUR über `setup.sh` oder `create-desktop-shortcut.sh` erstellt, NICHT automatisch
+- **Bugfixes:** 
+  - SYSTEM_PACKAGES Newline-Problem behoben
+  - Syntaxfehler korrigiert
+  - Interactive Mode COLOR_BOLD Fehler behoben
+  - Cursor Extraktion funktioniert jetzt korrekt (ar x, tar mit ./ Pfaden)
+- **Cleanup:** Alle temporären Dateien werden automatisch gelöscht
+- **Dokumentation:** Alle MD-Dateien aktualisiert

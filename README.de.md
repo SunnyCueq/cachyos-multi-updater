@@ -85,11 +85,15 @@ Dieses Script aktualisiert automatisch vier verschiedene Dinge auf deinem System
 **Was ist Cursor?** Cursor ist ein Code-Editor (wie VS Code) mit KI-Features. Wenn du es installiert hast, hält dieses Script es auf dem neuesten Stand.
 
 **Was passiert während des Updates?**
-1. Das Script prüft deine aktuelle Cursor-Version
-2. Prüft, ob eine neuere Version verfügbar ist
-3. Lädt die neueste Version von Cursors Servern herunter (falls nötig)
-4. Installiert die neue Version
-5. Du kannst Cursor manuell neu starten, falls es gelaufen ist
+1. Das Script prüft deine aktuelle Cursor-Version (aus package.json)
+2. Lädt die neueste .deb-Datei von Cursors offiziellen Servern herunter (nötig für Versionsprüfung)
+3. Extrahiert die Version aus der .deb-Datei VOR der Installation
+4. Vergleicht Versionen - wenn bereits aktuell, überspringt Installation und löscht die .deb-Datei
+5. Wenn Update nötig, installiert die neue Version
+6. Die .deb-Datei wird automatisch nach der Installation gelöscht
+7. Du kannst Cursor manuell neu starten, falls es gelaufen ist
+
+**Hinweis:** Der Download ist nötig, da die Version nur aus der .deb-Datei extrahiert werden kann. Wenn die Version jedoch bereits aktuell ist, wird die .deb-Datei sofort gelöscht ohne Installation.
 
 **Hinweis:** Das Script schließt oder startet Cursor NICHT automatisch. Falls Cursor läuft, solltest du es manuell schließen, bevor du das Update ausführst, für eine saubere Installation.
 
@@ -100,11 +104,15 @@ Dieses Script aktualisiert automatisch vier verschiedene Dinge auf deinem System
 **Was ist AdGuard Home?** AdGuard Home ist ein netzwerkweiter Werbeblocker und DNS-Server. Es blockiert Werbung und Tracker für alle Geräte in deinem Netzwerk.
 
 **Was passiert während des Updates?**
-1. Das Script stoppt den AdGuard Home-Service
-2. Lädt die neueste Version herunter
-3. Erstellt ein Backup deiner Konfiguration
-4. Installiert die neue Version
-5. Startet den Service neu
+1. Prüft aktuelle Version
+2. Prüft neueste Version über GitHub Releases API
+3. Wenn bereits aktuell, überspringt Download
+4. Wenn Update nötig:
+   - Stoppt den AdGuard Home-Service
+   - Lädt die neueste Version von offiziellen AdGuard-Servern herunter
+   - Erstellt ein Backup deiner Konfiguration
+   - Installiert die neue Version
+   - Startet den Service neu
 
 **Wichtig:** AdGuard Home muss in `~/AdGuardHome` (in deinem Home-Verzeichnis) installiert sein.
 

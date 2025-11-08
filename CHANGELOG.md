@@ -5,6 +5,47 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/),
 und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [2.7.6] - 2025-11-08
+
+### Behoben
+- **🐛 Cursor-Versionsprüfung:** Version wird jetzt aus .deb extrahiert VOR Installation
+  - Verhindert unnötige Downloads wenn bereits aktuell
+  - Unterstützt beide Installationspfade (opt/cursor und usr/share/cursor)
+  - Extrahiert Version aus `./usr/share/cursor/resources/app/package.json` im .deb-Archiv
+  - .deb wird automatisch gelöscht wenn Version gleich ist
+  - Fallback: Installation wird durchgeführt wenn Extraktion fehlschlägt
+- **🐛 AdGuard Home Versionsprüfung:** Nutzt jetzt GitHub Releases API
+  - Prüft Version VOR Download
+  - Überspringt Download wenn bereits aktuell
+  - Fallback: Alte Methode wenn API nicht verfügbar
+- **🐛 SYSTEM_PACKAGES Fehler:** Newlines werden jetzt korrekt entfernt
+  - Behebt "Ganzzahl erwartet" Fehler in Zeile 936/1010
+- **🐛 Syntaxfehler:** Alle if/fi-Strukturen korrigiert
+  - Doppelte else-Blöcke entfernt
+  - Korrekte Einrückung
+- **🐛 Interactive Mode:** `COLOR_BOLD` Fehler behoben
+  - Farbvariablen werden jetzt VOR Module laden gesetzt
+  - Logging-Funktionen werden VOR Module laden definiert
+- **🐛 Cursor Extraktion:** `ar x` funktioniert jetzt korrekt
+  - Extrahiert alle Dateien, dann Suche nach `data.tar.*`
+  - Unterstützt verschiedene Kompressionen (.gz, .xz, .bz2, unkomprimiert)
+  - Pfade müssen mit `./` beginnen (wie im tar-Archiv)
+
+### Verbessert
+- **📝 Cursor Download:** Nutzt offiziellen Download-Link von cursor.com
+  - Siehe https://cursor.com/download
+  - Download ist nötig für Versionsprüfung (Version wird aus .deb extrahiert)
+  - .deb wird automatisch gelöscht nach Versionsprüfung/Installation
+- **📝 AdGuard Home Download:** Nutzt offiziellen Download-Link
+  - Siehe https://adguard-dns.io/kb/de/adguard-home/getting-started/
+  - Download wird übersprungen wenn bereits aktuell
+- **🔧 Desktop-Integration:** Wrapper-Script `run-update.sh` für zuverlässiges Terminal offen halten
+  - `launch-update.sh` für Parameter-Handling
+  - `konsole --hold` für KDE/Plasma
+- **🧹 Cleanup:** Alle temporären Dateien werden automatisch gelöscht
+  - Cursor .deb wird nach Versionsprüfung/Installation gelöscht
+  - Temporäre Extraktions-Verzeichnisse werden entfernt
+
 ## [2.7.5] - 2025-11-08
 
 ### Hinzugefügt

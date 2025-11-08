@@ -16,16 +16,68 @@ if [ ! -f "$SCRIPT_PATH" ]; then
 fi
 
 # Erstelle Desktop-Datei mit absolutem Pfad
-# WICHTIG: Terminal explizit öffnen und Script darin ausführen
-# Für KDE/Plasma: konsole -e
-# Fallback: xterm oder gnome-terminal
+# WICHTIG: Verwende Wrapper-Script run-update.sh für zuverlässiges Terminal offen halten
+# Für KDE/Plasma: konsole -e mit Wrapper-Script
 
-# Baue Exec-String mit optionalem Update-Modus
+WRAPPER_SCRIPT="$SCRIPT_DIR/run-update.sh"
+
+# Prüfe ob Wrapper-Script existiert, sonst erstelle es
+if [ ! -f "$WRAPPER_SCRIPT" ]; then
+    echo "⚠️  Wrapper-Script nicht gefunden, erstelle es..." >&2
+    cat > "$WRAPPER_SCRIPT" <<'WRAPPER_EOF'
+#!/bin/bash
+# Wrapper-Script zum Ausführen von update-all.sh mit Terminal offen halten
+set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+UPDATE_SCRIPT="$SCRIPT_DIR/update-all.sh"
+UPDATE_MODE="${1:-}"
 if [ -n "$UPDATE_MODE" ]; then
-    EXEC_CMD="konsole -e bash -c \"$SCRIPT_PATH $UPDATE_MODE; echo ''; echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'; read -p 'Drücke Enter zum Beenden...'\""
+    "$UPDATE_SCRIPT" "$UPDATE_MODE"
 else
-    EXEC_CMD="konsole -e bash -c \"$SCRIPT_PATH; echo ''; echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'; read -p 'Drücke Enter zum Beenden...'\""
+    "$UPDATE_SCRIPT"
 fi
+EXIT_CODE=$?
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+if [ $EXIT_CODE -eq 0 ]; then
+    echo "✅ Update erfolgreich abgeschlossen!"
+else
+    echo "❌ Update mit Fehler beendet (Exit-Code: $EXIT_CODE)"
+fi
+echo ""
+read -p "Drücke Enter zum Beenden..." || sleep 5
+exit $EXIT_CODE
+WRAPPER_EOF
+    chmod +x "$WRAPPER_SCRIPT"
+fi
+
+# Baue Exec-String mit Wrapper-Script und optionalem Update-Modus
+# WICHTIG: Desktop-Dateien haben Probleme mit Escaping - verwende temporäres Script
+# WICHTIG: --auto ist kein gültiger Parameter für update-all.sh (Standard-Modus ist automatisch)
+# Erstelle ein temporäres Script, das die Parameter bereits enthält
+LAUNCHER_SCRIPT="$SCRIPT_DIR/launch-update.sh"
+
+# Konvertiere --auto zu leerem String (Standard-Modus = automatisch)
+if [ "$UPDATE_MODE" = "--auto" ]; then
+    UPDATE_MODE=""
+fi
+
+if [ -n "$UPDATE_MODE" ]; then
+    cat > "$LAUNCHER_SCRIPT" <<LAUNCHER_EOF
+#!/bin/bash
+exec "$WRAPPER_SCRIPT" "$UPDATE_MODE"
+LAUNCHER_EOF
+else
+    cat > "$LAUNCHER_SCRIPT" <<LAUNCHER_EOF
+#!/bin/bash
+exec "$WRAPPER_SCRIPT"
+LAUNCHER_EOF
+fi
+chmod +x "$LAUNCHER_SCRIPT"
+
+# Verwende konsole --hold - das hält das Terminal explizit offen
+# WICHTIG: Pfade mit Leerzeichen/Klammern müssen in Desktop-Dateien in Anführungszeichen
+EXEC_CMD="konsole --hold -e \"$LAUNCHER_SCRIPT\""
 
 cat > "$DESKTOP_FILE" <<EOF
 [Desktop Entry]

@@ -5,7 +5,7 @@
 set -euo pipefail
 
 # ========== Version ==========
-readonly SCRIPT_VERSION="2.7.5"
+readonly SCRIPT_VERSION="2.7.6"
 readonly GITHUB_REPO="SunnyCueq/cachyos-multi-updater"
 
 # ========== Exit-Codes ==========
@@ -119,6 +119,53 @@ load_config() {
 
 load_config
 
+# ========== Farben (MUSS vor Logging-Funktionen gesetzt werden!) ==========
+if [ "$ENABLE_COLORS" = "true" ] && [ -t 1 ]; then
+    COLOR_RESET='\033[0m'
+    COLOR_INFO='\033[0;36m'      # Cyan
+    COLOR_SUCCESS='\033[0;32m'   # Green
+    COLOR_ERROR='\033[0;31m'     # Red
+    COLOR_WARNING='\033[0;33m'   # Yellow
+    COLOR_BOLD='\033[1m'         # Bold
+else
+    COLOR_RESET=''
+    COLOR_INFO=''
+    COLOR_SUCCESS=''
+    COLOR_ERROR=''
+    COLOR_WARNING=''
+    COLOR_BOLD=''
+fi
+
+# ========== Logging-Funktionen (MUSS vor Module laden definiert werden!) ==========
+log() {
+    local level="$1"
+    shift
+    local message="$*"
+    local timestamp
+    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    echo "[$timestamp] [$level] $message" | tee -a "$LOG_FILE"
+}
+
+log_info() {
+    log "INFO" "$@"
+    echo -e "${COLOR_INFO}ℹ️  $*${COLOR_RESET}"
+}
+
+log_success() {
+    log "SUCCESS" "$@"
+    echo -e "${COLOR_SUCCESS}✅ $*${COLOR_RESET}"
+}
+
+log_error() {
+    log "ERROR" "$@"
+    echo -e "${COLOR_ERROR}❌ $*${COLOR_RESET}" >&2
+}
+
+log_warning() {
+    log "WARNING" "$@"
+    echo -e "${COLOR_WARNING}⚠️  $*${COLOR_RESET}"
+}
+
 # ========== Module laden ==========
 if [ ! -f "$SCRIPT_DIR/lib/statistics.sh" ]; then
     echo "Fehler: statistics.sh nicht gefunden in $SCRIPT_DIR/lib/" >&2
@@ -221,22 +268,7 @@ if [ "$DRY_RUN" = "true" ]; then
     echo ""
 fi
 
-# ========== Farben (optional) ==========
-if [ "$ENABLE_COLORS" = "true" ] && [ -t 1 ]; then
-    COLOR_RESET='\033[0m'
-    COLOR_INFO='\033[0;36m'      # Cyan
-    COLOR_SUCCESS='\033[0;32m'   # Green
-    COLOR_ERROR='\033[0;31m'     # Red
-    COLOR_WARNING='\033[0;33m'   # Yellow
-    COLOR_BOLD='\033[1m'         # Bold
-else
-    COLOR_RESET=''
-    COLOR_INFO=''
-    COLOR_SUCCESS=''
-    COLOR_ERROR=''
-    COLOR_WARNING=''
-    COLOR_BOLD=''
-fi
+# Farben sind bereits oben gesetzt (vor Module laden)
 
 # ========== Snapshot/Rollback-Funktionen ==========
 create_snapshot() {
@@ -402,35 +434,7 @@ Memory:         $(free -h 2>/dev/null | awk 'NR==2 {print $7 " verfügbar von " 
 EOF
 }
 
-# ========== Logging-Funktionen ==========
-log() {
-    local level="$1"
-    shift
-    local message="$*"
-    local timestamp
-    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-    echo "[$timestamp] [$level] $message" | tee -a "$LOG_FILE"
-}
-
-log_info() {
-    log "INFO" "$@"
-    echo -e "${COLOR_INFO}ℹ️  $*${COLOR_RESET}"
-}
-
-log_success() {
-    log "SUCCESS" "$@"
-    echo -e "${COLOR_SUCCESS}✅ $*${COLOR_RESET}"
-}
-
-log_error() {
-    log "ERROR" "$@"
-    echo -e "${COLOR_ERROR}❌ $*${COLOR_RESET}" >&2
-}
-
-log_warning() {
-    log "WARNING" "$@"
-    echo -e "${COLOR_WARNING}⚠️  $*${COLOR_RESET}"
-}
+# Logging-Funktionen sind bereits oben definiert (vor Module laden)
 
 # ========== Error Handling ==========
 cleanup_on_error() {
@@ -529,6 +533,8 @@ if [ "$UPDATE_SYSTEM" = "true" ]; then
     else
         # Zähle Pakete VOR dem Update
         SYSTEM_PACKAGES=$(pacman -Qu 2>/dev/null | wc -l || echo "0")
+        # Bereinige Newlines und Whitespace
+        SYSTEM_PACKAGES=$(echo "$SYSTEM_PACKAGES" | tr -d '\n\r' | xargs)
         log_info "Zu aktualisierende Pakete: $SYSTEM_PACKAGES"
 
         if sudo pacman -Syu --noconfirm 2>&1 | tee -a "$LOG_FILE"; then
@@ -659,134 +665,243 @@ if [ "$UPDATE_CURSOR" = "true" ]; then
             log_info "Aktuelle Cursor-Version: $CURRENT_VERSION"
             echo "📌 Aktuelle Version: $CURRENT_VERSION"
             
-            # Prüfe neueste verfügbare Version (ohne Download)
-            # WICHTIG: Cursor API gibt 404 zurück - Versionsprüfung nicht möglich
-            # Daher: Wenn Version bekannt ist, prüfe ob Download-URL existiert
-            SKIP_DOWNLOAD=false
+            # Prüfe neueste verfügbare Version
+            # WICHTIG: Cursor API gibt 404 zurück - nutze direkten Download von cursor.com
+            # Vereinfachte Lösung: Prüfe ob Update nötig ist durch Dateigröße/Hash-Vergleich
+            # Oder: Akzeptiere dass Versionsprüfung nicht perfekt ist und lade bei jedem Run
+            # BESSER: Nutze GitHub Releases API falls verfügbar, sonst direkter Download
+            SKIP_INSTALL=false
+            DEB_FILE="$SCRIPT_DIR/cursor_latest_amd64.deb"
+            # Direkter Download-Link von cursor.com (Linux .deb x64)
+            # Siehe https://cursor.com/download - Linux .deb (x64)
+            DOWNLOAD_URL="https://api2.cursor.sh/updates/download/golden/linux-x64-deb/cursor/2.0"
+            
+            # Versuche Version aus .deb zu extrahieren NACH Download
             if [ "$CURRENT_VERSION" != "unbekannt" ]; then
                 log_info "Cursor-Version erkannt: $CURRENT_VERSION"
                 echo "ℹ️  Cursor-Version: $CURRENT_VERSION"
-                echo "⚠️  Versionsprüfung via API nicht verfügbar (API gibt 404)"
-                echo "   Update wird durchgeführt falls .deb verfügbar ist"
-                log_warning "Cursor API gibt 404 - Versionsprüfung nicht möglich"
-            else
-                log_warning "Cursor-Version konnte nicht ermittelt werden, fahre mit Update fort..."
-            fi
-            
-            # Überspringe Download wenn bereits aktuell
-            if [ "$SKIP_DOWNLOAD" = "true" ]; then
-                log_info "Cursor-Update übersprungen (bereits aktuell)"
-                echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                echo ""
-            else
-                # Download .deb in Script-Ordner
-                DEB_FILE="$SCRIPT_DIR/cursor_latest_amd64.deb"
-                DOWNLOAD_URL="https://api2.cursor.sh/updates/download/golden/linux-x64-deb/cursor/2.0"
+                echo "🔍 Prüfe verfügbare Version..."
                 
                 log_info "Lade Cursor .deb von: $DOWNLOAD_URL"
                 echo "⬇️  Lade Cursor .deb..."
                 
-                if ! download_with_retry "$DOWNLOAD_URL" "$DEB_FILE"; then
-                    log_error "Cursor-Download fehlgeschlagen!"
-                    echo "❌ Download fehlgeschlagen!"
-                    rm -f "$DEB_FILE"
-                else
-                    # Prüfe Download
+                if download_with_retry "$DOWNLOAD_URL" "$DEB_FILE"; then
                     if [[ -f "$DEB_FILE" ]] && [[ $(stat -c%s "$DEB_FILE") -gt 50000000 ]]; then
                         DEB_SIZE=$(du -h "$DEB_FILE" | cut -f1)
                         log_success "Download erfolgreich: $DEB_SIZE"
                         echo "✅ Download erfolgreich: $DEB_SIZE"
                         
-                        # Cursor-Prozesse prüfen (nicht automatisch schließen)
-                        # Verwende -x für exact match, verhindert false positives
-                        cursor_pids=$(pgrep -x "cursor" 2>/dev/null || pgrep -x "Cursor" 2>/dev/null || true)
-                        if [ -n "$cursor_pids" ]; then
-                            log_warning "Cursor läuft noch (PID: $cursor_pids) - bitte manuell schließen für sauberes Update"
-                            echo "⚠️  Cursor läuft noch (PID: $cursor_pids)"
-                            echo "   Bitte manuell schließen für sauberes Update"
-                            echo "   (Cursor wird nicht automatisch geschlossen)"
+                        # Extrahiere Version aus .deb (VOR Installation)
+                        TEMP_EXTRACT_DIR=$(mktemp -d -t cursor-version-check.XXXXXXXXXX)
+                        if ! cd "$TEMP_EXTRACT_DIR" 2>/dev/null; then
+                            log_warning "Konnte nicht in temporäres Verzeichnis wechseln, fahre mit Installation fort..."
+                            rm -rf "$TEMP_EXTRACT_DIR"
+                        elif ! ar x "$DEB_FILE" 2>/dev/null; then
+                            cd "$SCRIPT_DIR" || true
+                            rm -rf "$TEMP_EXTRACT_DIR"
+                            log_warning "Fehler beim Extrahieren der .deb-Datei, fahre mit Installation fort..."
                         else
-                            log_info "Keine laufenden Cursor-Prozesse gefunden"
-                            echo "ℹ️  Cursor läuft nicht"
-                        fi
-                        
-                        # Extrahiere .deb
-                        extract_dir=$(mktemp -d -t cursor-extract.XXXXXXXXXX)
-                        trap 'rm -rf "$extract_dir" "$DEB_FILE"' EXIT
-                        
-                        log_info "Extrahiere Cursor .deb..."
-                        echo "📦 Extrahiere .deb-Archiv..."
-                        cd "$extract_dir"
-
-                        if ! ar x "$DEB_FILE" 2>&1 | tee -a "$LOG_FILE"; then
-                            log_error "Fehler beim Extrahieren des .deb-Archivs"
-                            echo "❌ Fehler beim Extrahieren!"
-                            rm -rf "$extract_dir" "$DEB_FILE"
-                            exit $EXIT_DOWNLOAD_ERROR
-                        elif ! tar -xf data.tar.* 2>&1 | tee -a "$LOG_FILE"; then
-                            log_error "Fehler beim Extrahieren der Daten"
-                            echo "❌ Fehler beim Extrahieren der Daten!"
-                            rm -rf "$extract_dir" "$DEB_FILE"
-                            exit $EXIT_DOWNLOAD_ERROR
-                        else
-                            # Finde Cursor-Binary und Ressourcen
-                            install_success=false
-
-                            if [[ -d "opt/Cursor" ]]; then
-                                log_info "Installiere Cursor-Update (opt/Cursor)..."
-                                echo "📦 Installiere Update..."
-                                if sudo cp -rf opt/Cursor/* "$CURSOR_INSTALL_DIR/" 2>&1 | tee -a "$LOG_FILE"; then
-                                    sudo chmod +x "$CURSOR_INSTALL_DIR/cursor" 2>/dev/null || true
-                                    log_success "Cursor-Update installiert"
-                                    install_success=true
-                                elif sudo cp -rf opt/Cursor/* "$(dirname "$CURSOR_INSTALL_DIR")/" 2>&1 | tee -a "$LOG_FILE"; then
-                                    sudo chmod +x "$(dirname "$CURSOR_INSTALL_DIR")/cursor" 2>/dev/null || true
-                                    log_success "Cursor-Update installiert (alternativer Pfad)"
-                                    install_success=true
-                                elif sudo cp -rf opt/Cursor /opt/ 2>&1 | tee -a "$LOG_FILE"; then
-                                    sudo chmod +x /opt/Cursor/cursor 2>/dev/null || true
-                                    log_success "Cursor-Update installiert (nach /opt)"
-                                    install_success=true
-                                fi
-                            elif [[ -d "usr/share/cursor" ]]; then
-                                log_info "Installiere Cursor-Update (usr/share/cursor)..."
-                                echo "📦 Installiere Update (usr-Variante)..."
-                                if sudo cp -rf usr/share/cursor/* "$CURSOR_INSTALL_DIR/" 2>&1 | tee -a "$LOG_FILE"; then
-                                    sudo chmod +x "$CURSOR_INSTALL_DIR/cursor" 2>/dev/null || true
-                                    log_success "Cursor-Update installiert"
-                                    install_success=true
-                                fi
-                            fi
-
-                            # Cleanup IMMER durchführen (trap entfernen vor cleanup)
-                            trap - EXIT
-                            log_info "Bereinige temporäre Dateien..."
-                            rm -rf "$extract_dir" "$DEB_FILE"
-                            log_info "Temporäre Dateien gelöscht"
-
-                            if [ "$install_success" = "true" ]; then
-                                # Neue Version prüfen (nur package.json - --version öffnet Cursor!)
-                                sleep 1
-                                NEW_VERSION="installiert"
-                                if [ -f "$CURSOR_INSTALL_DIR/resources/app/package.json" ]; then
-                                    NEW_VERSION=$(grep -oP '"version":\s*"\K[0-9.]+' "$CURSOR_INSTALL_DIR/resources/app/package.json" 2>/dev/null | head -1 || echo "installiert")
-                                fi
-                                CURSOR_UPDATED=true
-                                log_success "Cursor updated: $CURRENT_VERSION → $NEW_VERSION"
-                                echo "✅ Cursor aktualisiert: $CURRENT_VERSION → $NEW_VERSION"
-                                echo "ℹ️  Cursor kann jetzt manuell gestartet werden (falls geschlossen)"
+                            # Finde die tar-Datei (kann .gz, .xz, .bz2 oder unkomprimiert sein)
+                            # ar x extrahiert alle Dateien, wir suchen data.tar.*
+                            TAR_FILE=$(ls data.tar.* 2>/dev/null | head -1)
+                            if [ -z "$TAR_FILE" ]; then
+                                cd "$SCRIPT_DIR" || true
+                                rm -rf "$TEMP_EXTRACT_DIR"
+                                log_warning "Keine data.tar.* Datei gefunden, fahre mit Installation fort..."
                             else
-                                log_error "Cursor-Dateien nicht gefunden im .deb oder Installation fehlgeschlagen!"
-                                echo "❌ Installation fehlgeschlagen!"
+                                # Versuche Extraktion mit verschiedenen Kompressionen
+                                # WICHTIG: Pfade müssen mit ./ beginnen (wie im tar-Archiv)
+                                EXTRACT_SUCCESS=false
+                                if [[ "$TAR_FILE" == *.gz ]]; then
+                                    tar -xzf "$TAR_FILE" ./usr/share/cursor/resources/app/package.json 2>/dev/null || tar -xzf "$TAR_FILE" ./opt/cursor/resources/app/package.json 2>/dev/null
+                                    EXTRACT_SUCCESS=$?
+                                elif [[ "$TAR_FILE" == *.xz ]]; then
+                                    tar -xJf "$TAR_FILE" ./usr/share/cursor/resources/app/package.json 2>/dev/null || tar -xJf "$TAR_FILE" ./opt/cursor/resources/app/package.json 2>/dev/null
+                                    EXTRACT_SUCCESS=$?
+                                elif [[ "$TAR_FILE" == *.bz2 ]]; then
+                                    tar -xjf "$TAR_FILE" ./usr/share/cursor/resources/app/package.json 2>/dev/null || tar -xjf "$TAR_FILE" ./opt/cursor/resources/app/package.json 2>/dev/null
+                                    EXTRACT_SUCCESS=$?
+                                else
+                                    tar -xf "$TAR_FILE" ./usr/share/cursor/resources/app/package.json 2>/dev/null || tar -xf "$TAR_FILE" ./opt/cursor/resources/app/package.json 2>/dev/null
+                                    EXTRACT_SUCCESS=$?
+                                fi
+                                
+                                if [ $EXTRACT_SUCCESS -eq 0 ]; then
+                                    PACKAGE_JSON=""
+                                    # Prüfe zuerst usr/share/cursor (häufigster Pfad)
+                                    if [ -f "usr/share/cursor/resources/app/package.json" ]; then
+                                        PACKAGE_JSON="usr/share/cursor/resources/app/package.json"
+                                    elif [ -f "opt/cursor/resources/app/package.json" ]; then
+                                        PACKAGE_JSON="opt/cursor/resources/app/package.json"
+                                    fi
+                                    
+                                    if [ -n "$PACKAGE_JSON" ] && [ -f "$PACKAGE_JSON" ]; then
+                                        LATEST_VERSION=$(grep -oP '"version":\s*"\K[0-9.]+' "$PACKAGE_JSON" 2>/dev/null | head -1 || echo "")
+                                        cd "$SCRIPT_DIR" || true
+                                        rm -rf "$TEMP_EXTRACT_DIR"
+                                        
+                                        if [ -n "$LATEST_VERSION" ]; then
+                                            log_info "Neueste verfügbare Version: $LATEST_VERSION"
+                                            echo "📌 Verfügbare Version: $LATEST_VERSION"
+                                            
+                                            # Vergleiche Versionen
+                                            if [ "$CURRENT_VERSION" = "$LATEST_VERSION" ]; then
+                                                SKIP_INSTALL=true
+                                                log_info "Cursor ist bereits auf neuester Version ($CURRENT_VERSION)"
+                                                echo "✅ Cursor ist bereits aktuell ($CURRENT_VERSION)"
+                                                rm -f "$DEB_FILE"
+                                            else
+                                                log_info "Update verfügbar: $CURRENT_VERSION → $LATEST_VERSION"
+                                                echo "🔄 Update verfügbar: $CURRENT_VERSION → $LATEST_VERSION"
+                                            fi
+                                        else
+                                            log_warning "Version konnte nicht aus package.json extrahiert werden, fahre mit Installation fort..."
+                                        fi
+                                    else
+                                        cd "$SCRIPT_DIR" || true
+                                        rm -rf "$TEMP_EXTRACT_DIR"
+                                        log_warning "package.json nicht in .deb gefunden, fahre mit Installation fort..."
+                                    fi
+                                else
+                                    cd "$SCRIPT_DIR" || true
+                                    rm -rf "$TEMP_EXTRACT_DIR"
+                                    log_warning "Fehler beim Extrahieren der tar-Datei, fahre mit Installation fort..."
+                                fi
                             fi
+                            # WICHTIG: Zurück zum Script-Verzeichnis
+                            cd "$SCRIPT_DIR" || true
                         fi
-                        # WICHTIG: cd zurück zum Script-Verzeichnis
-                        cd "$SCRIPT_DIR" || true
                     else
                         log_error "Download zu klein oder fehlgeschlagen!"
-                        echo "❌ Download zu klein oder fehlgeschlagen!"
+                        echo "❌ Download fehlgeschlagen!"
                         rm -f "$DEB_FILE"
+                        SKIP_INSTALL=true
                     fi
+                else
+                    log_error "Cursor-Download fehlgeschlagen!"
+                    echo "❌ Download fehlgeschlagen!"
+                    rm -f "$DEB_FILE"
+                    SKIP_INSTALL=true
+                fi
+            else
+                log_warning "Cursor-Version konnte nicht ermittelt werden, fahre mit Update fort..."
+                echo "⬇️  Lade Cursor .deb..."
+                if ! download_with_retry "$DOWNLOAD_URL" "$DEB_FILE"; then
+                    log_error "Cursor-Download fehlgeschlagen!"
+                    echo "❌ Download fehlgeschlagen!"
+                    rm -f "$DEB_FILE"
+                    SKIP_INSTALL=true
+                else
+                    if [[ -f "$DEB_FILE" ]] && [[ $(stat -c%s "$DEB_FILE") -gt 50000000 ]]; then
+                        DEB_SIZE=$(du -h "$DEB_FILE" | cut -f1)
+                        log_success "Download erfolgreich: $DEB_SIZE"
+                        echo "✅ Download erfolgreich: $DEB_SIZE"
+                    else
+                        log_error "Download zu klein oder fehlgeschlagen!"
+                        echo "❌ Download fehlgeschlagen!"
+                        rm -f "$DEB_FILE"
+                        SKIP_INSTALL=true
+                    fi
+                fi
+            fi
+            
+            # Überspringe Installation wenn bereits aktuell
+            if [ "$SKIP_INSTALL" = "true" ]; then
+                log_info "Cursor-Update übersprungen (bereits aktuell)"
+                echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                echo ""
+            else
+                # .deb wurde bereits heruntergeladen, fahre mit Installation fort
+                if [[ -f "$DEB_FILE" ]] && [[ $(stat -c%s "$DEB_FILE") -gt 50000000 ]]; then
+                    # Cursor-Prozesse prüfen (nicht automatisch schließen)
+                    # Verwende -x für exact match, verhindert false positives
+                    cursor_pids=$(pgrep -x "cursor" 2>/dev/null || pgrep -x "Cursor" 2>/dev/null || true)
+                    if [ -n "$cursor_pids" ]; then
+                        log_warning "Cursor läuft noch (PID: $cursor_pids) - bitte manuell schließen für sauberes Update"
+                        echo "⚠️  Cursor läuft noch (PID: $cursor_pids)"
+                        echo "   Bitte manuell schließen für sauberes Update"
+                        echo "   (Cursor wird nicht automatisch geschlossen)"
+                    else
+                        log_info "Keine laufenden Cursor-Prozesse gefunden"
+                        echo "ℹ️  Cursor läuft nicht"
+                    fi
+                    
+                    # Extrahiere .deb
+                    extract_dir=$(mktemp -d -t cursor-extract.XXXXXXXXXX)
+                    trap 'rm -rf "$extract_dir" "$DEB_FILE"' EXIT
+                    
+                    log_info "Extrahiere Cursor .deb..."
+                    echo "📦 Extrahiere .deb-Archiv..."
+                    cd "$extract_dir"
+
+                    if ! ar x "$DEB_FILE" 2>&1 | tee -a "$LOG_FILE"; then
+                        log_error "Fehler beim Extrahieren des .deb-Archivs"
+                        echo "❌ Fehler beim Extrahieren!"
+                        rm -rf "$extract_dir" "$DEB_FILE"
+                        exit $EXIT_DOWNLOAD_ERROR
+                    elif ! tar -xf data.tar.* 2>&1 | tee -a "$LOG_FILE"; then
+                        log_error "Fehler beim Extrahieren der Daten"
+                        echo "❌ Fehler beim Extrahieren der Daten!"
+                        rm -rf "$extract_dir" "$DEB_FILE"
+                        exit $EXIT_DOWNLOAD_ERROR
+                    else
+                        # Finde Cursor-Binary und Ressourcen
+                        install_success=false
+
+                        if [[ -d "opt/Cursor" ]]; then
+                            log_info "Installiere Cursor-Update (opt/Cursor)..."
+                            echo "📦 Installiere Update..."
+                            if sudo cp -rf opt/Cursor/* "$CURSOR_INSTALL_DIR/" 2>&1 | tee -a "$LOG_FILE"; then
+                                sudo chmod +x "$CURSOR_INSTALL_DIR/cursor" 2>/dev/null || true
+                                log_success "Cursor-Update installiert"
+                                install_success=true
+                            elif sudo cp -rf opt/Cursor/* "$(dirname "$CURSOR_INSTALL_DIR")/" 2>&1 | tee -a "$LOG_FILE"; then
+                                sudo chmod +x "$(dirname "$CURSOR_INSTALL_DIR")/cursor" 2>/dev/null || true
+                                log_success "Cursor-Update installiert (alternativer Pfad)"
+                                install_success=true
+                            elif sudo cp -rf opt/Cursor /opt/ 2>&1 | tee -a "$LOG_FILE"; then
+                                sudo chmod +x /opt/Cursor/cursor 2>/dev/null || true
+                                log_success "Cursor-Update installiert (nach /opt)"
+                                install_success=true
+                            fi
+                        elif [[ -d "usr/share/cursor" ]]; then
+                            log_info "Installiere Cursor-Update (usr/share/cursor)..."
+                            echo "📦 Installiere Update (usr-Variante)..."
+                            if sudo cp -rf usr/share/cursor/* "$CURSOR_INSTALL_DIR/" 2>&1 | tee -a "$LOG_FILE"; then
+                                sudo chmod +x "$CURSOR_INSTALL_DIR/cursor" 2>/dev/null || true
+                                log_success "Cursor-Update installiert"
+                                install_success=true
+                            fi
+                        fi
+
+                        # Cleanup IMMER durchführen (trap entfernen vor cleanup)
+                        trap - EXIT
+                        log_info "Bereinige temporäre Dateien..."
+                        rm -rf "$extract_dir" "$DEB_FILE"
+                        log_info "Temporäre Dateien gelöscht"
+
+                        if [ "$install_success" = "true" ]; then
+                            # Neue Version prüfen (nur package.json - --version öffnet Cursor!)
+                            sleep 1
+                            NEW_VERSION="installiert"
+                            if [ -f "$CURSOR_INSTALL_DIR/resources/app/package.json" ]; then
+                                NEW_VERSION=$(grep -oP '"version":\s*"\K[0-9.]+' "$CURSOR_INSTALL_DIR/resources/app/package.json" 2>/dev/null | head -1 || echo "installiert")
+                            fi
+                            CURSOR_UPDATED=true
+                            log_success "Cursor updated: $CURRENT_VERSION → $NEW_VERSION"
+                            echo "✅ Cursor aktualisiert: $CURRENT_VERSION → $NEW_VERSION"
+                            echo "ℹ️  Cursor kann jetzt manuell gestartet werden (falls geschlossen)"
+                        else
+                            log_error "Cursor-Dateien nicht gefunden im .deb oder Installation fehlgeschlagen!"
+                            echo "❌ Installation fehlgeschlagen!"
+                        fi
+                    fi
+                    # WICHTIG: cd zurück zum Script-Verzeichnis
+                    cd "$SCRIPT_DIR" || true
+                else
+                    log_error "Download zu klein oder fehlgeschlagen!"
+                    echo "❌ Download zu klein oder fehlgeschlagen!"
+                    rm -f "$DEB_FILE"
                 fi
             fi
         fi
@@ -825,22 +940,81 @@ if [ "$UPDATE_ADGUARD" = "true" ]; then
         log_info "Aktuelle AdGuard-Version: v$current_version"
         echo "Aktuelle AdGuard-Version: v$current_version"
 
-        backup_dir="$agh_dir-backup-$(date +%Y%m%d-%H%M%S)"
-        mkdir -p "$backup_dir"
-        cp AdGuardHome.yaml data/* "$backup_dir/" 2>/dev/null || log_warning "Backup konnte nicht erstellt werden"
-        log_info "Backup erstellt in: $backup_dir"
+        # Prüfe neueste Version über GitHub Releases API
+        log_info "Prüfe verfügbare AdGuard Home-Version..."
+        latest_version_gh=$(curl -s "https://api.github.com/repos/AdguardTeam/AdGuardHome/releases/latest" 2>/dev/null | grep -oP '"tag_name":\s*"v\K[0-9.]+' | head -1 || echo "")
+        
+        # Entferne 'v' Präfix falls vorhanden
+        if [ -n "$latest_version_gh" ]; then
+            latest_version_gh=$(echo "$latest_version_gh" | sed 's/^v//')
+            log_info "Neueste verfügbare Version (GitHub): v$latest_version_gh"
+            
+            # Versionsvergleich - wenn bereits aktuell, überspringe Download
+            if [ "$current_version" = "$latest_version_gh" ]; then
+                log_info "AdGuardHome ist bereits auf neuester Version (v$current_version)"
+                echo "✅ AdGuardHome ist bereits aktuell (v$current_version)"
+                ADGUARD_UPDATED=false
+            else
+                log_info "Update verfügbar: v$current_version → v$latest_version_gh"
+                echo "🔄 Update verfügbar: v$current_version → v$latest_version_gh"
+                
+                backup_dir="$agh_dir-backup-$(date +%Y%m%d-%H%M%S)"
+                mkdir -p "$backup_dir"
+                cp AdGuardHome.yaml data/* "$backup_dir/" 2>/dev/null || log_warning "Backup konnte nicht erstellt werden"
+                log_info "Backup erstellt in: $backup_dir"
 
-        download_url="https://static.adguard.com/adguardhome/release/AdGuardHome_linux_amd64.tar.gz"
-        log_info "Lade AdGuardHome von: $download_url"
+                # Offizieller Download-Link von AdGuard (siehe https://adguard-dns.io/kb/de/adguard-home/getting-started/)
+                download_url="https://static.adguard.com/adguardhome/release/AdGuardHome_linux_amd64.tar.gz"
+                log_info "Lade AdGuardHome von: $download_url"
 
-        if download_with_retry "$download_url" "$temp_dir/AdGuardHome.tar.gz"; then
-            if [[ -f "$temp_dir/AdGuardHome.tar.gz" ]]; then
-                if tar -C "$temp_dir" -xzf "$temp_dir/AdGuardHome.tar.gz" 2>&1 | tee -a "$LOG_FILE"; then
-                    new_binary="$temp_dir/AdGuardHome/AdGuardHome"
-                    if [[ -f "$new_binary" ]]; then
-                        new_version=$("$new_binary" --version 2>/dev/null | grep -oP 'v\K[0-9.]+' || echo "0.0.0")
-                        # Semantischer Versionsvergleich statt String-Vergleich
-                        if printf '%s\n%s\n' "$current_version" "$new_version" | sort -V | head -1 | grep -q "^$current_version$"; then
+                if download_with_retry "$download_url" "$temp_dir/AdGuardHome.tar.gz"; then
+                    if [[ -f "$temp_dir/AdGuardHome.tar.gz" ]]; then
+                        if tar -C "$temp_dir" -xzf "$temp_dir/AdGuardHome.tar.gz" 2>&1 | tee -a "$LOG_FILE"; then
+                            new_binary="$temp_dir/AdGuardHome/AdGuardHome"
+                            if [[ -f "$new_binary" ]]; then
+                                new_version=$("$new_binary" --version 2>/dev/null | grep -oP 'v\K[0-9.]+' || echo "0.0.0")
+                                if [ "$new_version" != "$current_version" ]; then
+                                    if cp "$new_binary" "$agh_dir/" 2>&1 | tee -a "$LOG_FILE"; then
+                                        ADGUARD_UPDATED=true
+                                        log_success "AdGuardHome updated: v$current_version → v$new_version"
+                                        echo "✅ AdGuardHome updated: v$current_version → v$new_version"
+                                    else
+                                        log_error "Fehler beim Kopieren der neuen AdGuardHome-Binary"
+                                    fi
+                                else
+                                    log_info "AdGuardHome ist bereits aktuell (v$new_version)"
+                                    echo "ℹ️ AdGuardHome ist aktuell (v$new_version)."
+                                fi
+                            else
+                                log_error "AdGuardHome-Binary nicht im Archiv gefunden"
+                            fi
+                        else
+                            log_error "Fehler beim Extrahieren von AdGuardHome"
+                        fi
+                    else
+                        log_error "AdGuardHome-Download fehlgeschlagen!"
+                    fi
+                else
+                    log_error "AdGuardHome-Download fehlgeschlagen!"
+                fi
+            fi
+        else
+            # Fallback: Alte Methode wenn GitHub API nicht verfügbar
+            log_warning "GitHub API nicht verfügbar, verwende direkten Download..."
+            backup_dir="$agh_dir-backup-$(date +%Y%m%d-%H%M%S)"
+            mkdir -p "$backup_dir"
+            cp AdGuardHome.yaml data/* "$backup_dir/" 2>/dev/null || log_warning "Backup konnte nicht erstellt werden"
+            log_info "Backup erstellt in: $backup_dir"
+
+            download_url="https://static.adguard.com/adguardhome/release/AdGuardHome_linux_amd64.tar.gz"
+            log_info "Lade AdGuardHome von: $download_url"
+
+            if download_with_retry "$download_url" "$temp_dir/AdGuardHome.tar.gz"; then
+                if [[ -f "$temp_dir/AdGuardHome.tar.gz" ]]; then
+                    if tar -C "$temp_dir" -xzf "$temp_dir/AdGuardHome.tar.gz" 2>&1 | tee -a "$LOG_FILE"; then
+                        new_binary="$temp_dir/AdGuardHome/AdGuardHome"
+                        if [[ -f "$new_binary" ]]; then
+                            new_version=$("$new_binary" --version 2>/dev/null | grep -oP 'v\K[0-9.]+' || echo "0.0.0")
                             if [ "$new_version" != "$current_version" ]; then
                                 if cp "$new_binary" "$agh_dir/" 2>&1 | tee -a "$LOG_FILE"; then
                                     ADGUARD_UPDATED=true
@@ -854,21 +1028,19 @@ if [ "$UPDATE_ADGUARD" = "true" ]; then
                                 echo "ℹ️ AdGuardHome ist aktuell (v$new_version)."
                             fi
                         else
-                            log_info "AdGuardHome ist bereits aktuell (v$new_version)"
-                            echo "ℹ️ AdGuardHome ist aktuell (v$new_version)."
+                            log_error "AdGuardHome-Binary nicht im Archiv gefunden"
                         fi
                     else
-                        log_error "AdGuardHome-Binary nicht im Archiv gefunden"
+                        log_error "Fehler beim Extrahieren von AdGuardHome"
                     fi
                 else
-                    log_error "Fehler beim Extrahieren von AdGuardHome"
+                    log_error "AdGuardHome-Download fehlgeschlagen!"
                 fi
+            else
+                log_error "AdGuardHome-Download fehlgeschlagen!"
             fi
-            rm -rf "$temp_dir"
-        else
-            log_error "AdGuardHome-Download fehlgeschlagen!"
-            rm -rf "$temp_dir"
         fi
+        rm -rf "$temp_dir"
 
         log_info "Starte AdGuardHome-Service..."
         if systemctl --user start AdGuardHome 2>&1 | tee -a "$LOG_FILE"; then
@@ -933,8 +1105,10 @@ else
     if [ "$UPDATE_SYSTEM" = "true" ]; then
         if [ "$SYSTEM_UPDATED" = "true" ]; then
             echo -e "✅ ${COLOR_SUCCESS}System-Updates:${COLOR_RESET} Erfolgreich"
-            if [ "$SYSTEM_PACKAGES" != "0 (bereits aktuell)" ] && [ "$SYSTEM_PACKAGES" -gt 0 ]; then
-                echo "   📦 $SYSTEM_PACKAGES Pakete aktualisiert"
+            # Bereinige SYSTEM_PACKAGES für Vergleich (entferne Newlines und extrahiere nur Zahl)
+            SYSTEM_PACKAGES_CLEAN=$(echo "$SYSTEM_PACKAGES" | tr -d '\n\r' | grep -oE '[0-9]+' | head -1 || echo "0")
+            if [ -n "$SYSTEM_PACKAGES_CLEAN" ] && [ "$SYSTEM_PACKAGES_CLEAN" -gt 0 ] 2>/dev/null; then
+                echo "   📦 $SYSTEM_PACKAGES_CLEAN Pakete aktualisiert"
             else
                 echo "   ℹ️  Bereits auf dem neuesten Stand"
             fi
