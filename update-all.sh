@@ -5,7 +5,8 @@
 set -euo pipefail
 
 # ========== Version ==========
-SCRIPT_VERSION="2.1.0"
+SCRIPT_VERSION="2.2.0"
+GITHUB_REPO="SunnyCueq/cachyos-multi-updater"
 
 # ========== Konfiguration ==========
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -292,7 +293,7 @@ if [ "$UPDATE_CURSOR" = "true" ]; then
         log_info "Lade Cursor .deb von: $DOWNLOAD_URL"
         echo "⬇️  Lade Cursor .deb nach $SCRIPT_DIR..."
         
-        if ! curl -L -f -o "$DEB_FILE" "$DOWNLOAD_URL" 2>&1 | tee -a "$LOG_FILE"; then
+        if ! curl -L -f --progress-bar -o "$DEB_FILE" "$DOWNLOAD_URL" 2>&1 | tee -a "$LOG_FILE"; then
             log_error "Cursor-Download fehlgeschlagen!"
             echo "❌ Download fehlgeschlagen!"
             rm -f "$DEB_FILE"
@@ -445,7 +446,7 @@ if [ "$UPDATE_ADGUARD" = "true" ]; then
         DOWNLOAD_URL="https://static.adguard.com/adguardhome/release/AdGuardHome_linux_amd64.tar.gz"
         log_info "Lade AdGuardHome von: $DOWNLOAD_URL"
         
-        if curl -L -f -o "$TEMP_DIR/AdGuardHome.tar.gz" "$DOWNLOAD_URL" 2>&1 | tee -a "$LOG_FILE"; then
+        if curl -L -f --progress-bar -o "$TEMP_DIR/AdGuardHome.tar.gz" "$DOWNLOAD_URL" 2>&1 | tee -a "$LOG_FILE"; then
             if [[ -f "$TEMP_DIR/AdGuardHome.tar.gz" ]]; then
                 if tar -C "$TEMP_DIR" -xzf "$TEMP_DIR/AdGuardHome.tar.gz" 2>&1 | tee -a "$LOG_FILE"; then
                     NEW_BINARY="$TEMP_DIR/AdGuardHome/AdGuardHome"
@@ -476,7 +477,16 @@ if [ "$UPDATE_ADGUARD" = "true" ]; then
         fi
         
         log_info "Starte AdGuardHome-Service..."
-        systemctl --user start AdGuardHome 2>&1 | tee -a "$LOG_FILE" || log_warning "AdGuardHome-Service konnte nicht gestartet werden"
+        if systemctl --user start AdGuardHome 2>&1 | tee -a "$LOG_FILE"; then
+            sleep 2
+            if systemctl --user is-active --quiet AdGuardHome; then
+                log_success "AdGuardHome-Service läuft erfolgreich"
+            else
+                log_warning "AdGuardHome-Service gestartet, aber Status unklar"
+            fi
+        else
+            log_warning "AdGuardHome-Service konnte nicht gestartet werden"
+        fi
     else
         log_warning "AdGuardHome Binary nicht gefunden in: $AGH_DIR"
         echo "⚠️ AdGuardHome Binary nicht gefunden."
@@ -508,6 +518,35 @@ else
         notify-send "Update fertig!" "CachyOS, AUR, Cursor & AdGuard sind frisch!" 2>/dev/null || true
     fi
 fi
+
+# ========== Script-Update-Check ==========
+check_script_update() {
+    if [ "$DRY_RUN" = "true" ]; then
+        return 0
+    fi
+    
+    log_info "Prüfe auf Script-Updates..."
+    LATEST_VERSION=$(curl -s "https://api.github.com/repos/$GITHUB_REPO/releases/latest" | grep -oP '"tag_name":\s*"v?\K[0-9.]+' | head -1 || echo "")
+    
+    if [ -z "$LATEST_VERSION" ]; then
+        log_warning "Konnte neueste Version nicht abrufen"
+        return 0
+    fi
+    
+    # Entferne 'v' Präfix falls vorhanden
+    LATEST_VERSION=$(echo "$LATEST_VERSION" | sed 's/^v//')
+    
+    if [ "$LATEST_VERSION" != "$SCRIPT_VERSION" ]; then
+        log_warning "Neue Script-Version verfügbar: $SCRIPT_VERSION → $LATEST_VERSION"
+        echo "⚠️  Neue Script-Version verfügbar: $SCRIPT_VERSION → $LATEST_VERSION"
+        echo "   Update: git pull (im Script-Verzeichnis)"
+        echo "   Oder: https://github.com/$GITHUB_REPO/releases/latest"
+    else
+        log_info "Script ist auf dem neuesten Stand (Version $SCRIPT_VERSION)"
+    fi
+}
+
+check_script_update
 
 log_info "Update-Script erfolgreich beendet"
 
