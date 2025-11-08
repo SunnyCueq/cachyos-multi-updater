@@ -652,27 +652,15 @@ if [ "$UPDATE_CURSOR" = "true" ]; then
             echo "📌 Aktuelle Version: $CURRENT_VERSION"
             
             # Prüfe neueste verfügbare Version (ohne Download)
+            # WICHTIG: Cursor API gibt 404 zurück - Versionsprüfung nicht möglich
+            # Daher: Wenn Version bekannt ist, prüfe ob Download-URL existiert
             SKIP_DOWNLOAD=false
             if [ "$CURRENT_VERSION" != "unbekannt" ]; then
-                log_info "Prüfe verfügbare Cursor-Version..."
-                echo "🔍 Prüfe verfügbare Version..."
-                LATEST_VERSION_INFO=$(curl -sL "https://api2.cursor.sh/updates/check?platform=linux-x64-deb&version=$CURRENT_VERSION" 2>/dev/null || echo "")
-                if [ -n "$LATEST_VERSION_INFO" ]; then
-                    LATEST_VERSION=$(echo "$LATEST_VERSION_INFO" | grep -oP '"version":\s*"\K[0-9.]+' | head -1 || echo "")
-                    if [ -n "$LATEST_VERSION" ] && [ "$LATEST_VERSION" != "$CURRENT_VERSION" ]; then
-                        echo "📥 Verfügbare Version: $LATEST_VERSION"
-                        log_info "Neue Version verfügbar: $CURRENT_VERSION → $LATEST_VERSION"
-                    elif [ "$LATEST_VERSION" = "$CURRENT_VERSION" ]; then
-                        echo "✅ Cursor ist bereits auf dem neuesten Stand ($CURRENT_VERSION)"
-                        log_info "Cursor ist bereits aktuell, Update übersprungen"
-                        SKIP_DOWNLOAD=true
-                    else
-                        echo "⚠️  Versionsprüfung fehlgeschlagen, fahre mit Update fort..."
-                        log_warning "Versionsprüfung fehlgeschlagen"
-                    fi
-                else
-                    log_warning "Konnte neueste Version nicht abrufen, fahre mit Update fort..."
-                fi
+                log_info "Cursor-Version erkannt: $CURRENT_VERSION"
+                echo "ℹ️  Cursor-Version: $CURRENT_VERSION"
+                echo "⚠️  Versionsprüfung via API nicht verfügbar (API gibt 404)"
+                echo "   Update wird durchgeführt falls .deb verfügbar ist"
+                log_warning "Cursor API gibt 404 - Versionsprüfung nicht möglich"
             else
                 log_warning "Cursor-Version konnte nicht ermittelt werden, fahre mit Update fort..."
             fi
@@ -1087,11 +1075,15 @@ check_script_update
 
 log_info "Update-Script erfolgreich beendet"
 
-# Terminal offen halten wenn interaktiv (auch bei Desktop-Icon)
-# WICHTIG: Prüfe ob wirklich interaktiv (Desktop-Icons haben oft kein echtes Terminal)
-if [ -t 0 ] && [ -t 1 ] && [ -n "${TERM:-}" ] && [ "${TERM:-}" != "dumb" ]; then
-    echo ""
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    read -p "Drücke Enter zum Beenden..." </dev/tty || true
+# Terminal offen halten (auch bei Desktop-Icon)
+# WICHTIG: Bei Desktop-Icons ist Terminal oft nicht interaktiv, daher immer versuchen
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+# Versuche read -p, falls das fehlschlägt, warte einfach
+if [ -t 0 ] && [ -t 1 ]; then
+    read -p "Drücke Enter zum Beenden..." </dev/tty 2>/dev/null || sleep 3
+else
+    # Nicht interaktiv - warte kurz damit User Output sehen kann
+    sleep 5
 fi
 

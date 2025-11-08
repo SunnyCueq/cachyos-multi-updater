@@ -30,6 +30,7 @@ error-report-*.txt
 
 # Konfigurationsdateien (User-spezifisch)
 config.conf.local
+config.local.conf
 *.local
 
 # Editor-Dateien
