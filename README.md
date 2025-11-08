@@ -1154,7 +1154,21 @@ This shows what WOULD be updated without making changes.
 
 ## 📅 Changelog
 
-### Version 2.2.0 (Current)
+### Version 2.3.0 (Current)
+
+**Cursor Update improvements:**
+- Added check if Cursor is installed via pacman (skips update if managed by system)
+- Added version check before download (skips if already up-to-date)
+- Improved Cursor process termination (pkill instead of killall)
+- Cleanup is now always executed (even on errors)
+- Better output format with separators
+- Improved error handling
+
+**Documentation:**
+- New rule: Continuous updating of all documentation
+- Improved release checklist
+
+### Version 2.2.0
 
 **New features:**
 - Added automatic update check for the script itself

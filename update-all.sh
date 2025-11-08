@@ -5,7 +5,7 @@
 set -euo pipefail
 
 # ========== Version ==========
-SCRIPT_VERSION="2.2.0"
+SCRIPT_VERSION="2.3.0"
 GITHUB_REPO="SunnyCueq/cachyos-multi-updater"
 
 # ========== Konfiguration ==========
@@ -259,7 +259,10 @@ fi
 # ========== Cursor updaten ==========
 if [ "$UPDATE_CURSOR" = "true" ]; then
     log_info "Starte Cursor-Update..."
-    echo "🖱️ Cursor updaten..."
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "🖱️  Cursor Update"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     
     if [ "$DRY_RUN" = "true" ]; then
         if command -v cursor >/dev/null 2>&1; then
@@ -272,99 +275,134 @@ if [ "$UPDATE_CURSOR" = "true" ]; then
         fi
     elif ! command -v cursor >/dev/null 2>&1; then
         log_warning "Cursor nicht gefunden – bitte manuell installieren!"
-        echo "⚠️ Cursor nicht gefunden – bitte manuell installieren!"
+        echo "⚠️  Cursor nicht gefunden – bitte manuell installieren!"
     else
-        # Cursor-Pfad finden
-        CURSOR_PATH=$(which cursor)
-        CURSOR_INSTALL_DIR=$(dirname "$(readlink -f "$CURSOR_PATH")")
-        
-        log_info "Cursor gefunden in: $CURSOR_INSTALL_DIR"
-        echo "📍 Cursor gefunden in: $CURSOR_INSTALL_DIR"
-        
-        # Aktuelle Version
-        CURRENT_VERSION=$(cursor --version 2>/dev/null | grep -oP '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "unbekannt")
-        log_info "Aktuelle Cursor-Version: $CURRENT_VERSION"
-        echo "Aktuelle Version: $CURRENT_VERSION"
-        
-        # Download .deb in Script-Ordner
-        DEB_FILE="$SCRIPT_DIR/cursor_latest_amd64.deb"
-        DOWNLOAD_URL="https://api2.cursor.sh/updates/download/golden/linux-x64-deb/cursor/2.0"
-        
-        log_info "Lade Cursor .deb von: $DOWNLOAD_URL"
-        echo "⬇️  Lade Cursor .deb nach $SCRIPT_DIR..."
-        
-        if ! curl -L -f --progress-bar -o "$DEB_FILE" "$DOWNLOAD_URL" 2>&1 | tee -a "$LOG_FILE"; then
-            log_error "Cursor-Download fehlgeschlagen!"
-            echo "❌ Download fehlgeschlagen!"
-            rm -f "$DEB_FILE"
-            # Weiter mit anderen Updates
+        # Prüfe, ob Cursor über pacman installiert ist
+        if pacman -Q cursor 2>/dev/null | grep -q cursor; then
+            CURSOR_PACMAN_VERSION=$(pacman -Q cursor | awk '{print $2}')
+            log_info "Cursor ist über pacman installiert (Version: $CURSOR_PACMAN_VERSION)"
+            echo "ℹ️  Cursor ist über pacman installiert (Version: $CURSOR_PACMAN_VERSION)"
+            echo "   → Cursor wird automatisch über System-Updates aktualisiert"
+            echo "   → Manuelles Update nicht nötig (deaktiviere ENABLE_CURSOR_UPDATE in config.conf)"
+            log_info "Cursor-Update übersprungen (wird über pacman verwaltet)"
         else
-            # Prüfe Download
-            if [[ -f "$DEB_FILE" ]] && [[ $(stat -c%s "$DEB_FILE") -gt 50000000 ]]; then
-                log_success "Download erfolgreich: $(du -h "$DEB_FILE" | cut -f1)"
-                echo "✅ Download OK: $(du -h "$DEB_FILE" | cut -f1)"
-                
-                # Cursor-Prozesse sicher beenden
-                log_info "Beende Cursor-Prozesse..."
-                echo "🔒 Schließe Cursor..."
-                
-                # Warte auf alle Cursor-Prozesse
-                CURSOR_PIDS=$(pgrep -f cursor || true)
-                if [ -n "$CURSOR_PIDS" ]; then
-                    log_info "Gefundene Cursor-Prozesse: $CURSOR_PIDS"
-                    killall cursor 2>/dev/null || true
-                    
-                    # Warte bis Prozesse beendet sind (max. 10 Sekunden)
-                    for i in {1..10}; do
-                        if ! pgrep -f cursor >/dev/null 2>&1; then
-                            log_success "Alle Cursor-Prozesse beendet"
-                            break
-                        fi
-                        sleep 1
-                    done
-                    
-                    # Falls noch Prozesse laufen, force kill
-                    if pgrep -f cursor >/dev/null 2>&1; then
-                        log_warning "Force-Kill von Cursor-Prozessen..."
-                        killall -9 cursor 2>/dev/null || true
-                        sleep 2
-                    fi
+            # Cursor-Pfad finden
+            CURSOR_PATH=$(which cursor)
+            CURSOR_INSTALL_DIR=$(dirname "$(readlink -f "$CURSOR_PATH")")
+            
+            log_info "Cursor gefunden in: $CURSOR_INSTALL_DIR"
+            echo "📍 Installationspfad: $CURSOR_INSTALL_DIR"
+            
+            # Aktuelle Version ermitteln
+            CURRENT_VERSION=$(cursor --version 2>/dev/null | grep -oP '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "unbekannt")
+            log_info "Aktuelle Cursor-Version: $CURRENT_VERSION"
+            echo "📌 Aktuelle Version: $CURRENT_VERSION"
+            
+            # Prüfe neueste verfügbare Version (ohne Download)
+            log_info "Prüfe verfügbare Cursor-Version..."
+            echo "🔍 Prüfe verfügbare Version..."
+            LATEST_VERSION_INFO=$(curl -sL "https://api2.cursor.sh/updates/check?platform=linux-x64-deb&version=$CURRENT_VERSION" 2>/dev/null || echo "")
+            if [ -n "$LATEST_VERSION_INFO" ]; then
+                LATEST_VERSION=$(echo "$LATEST_VERSION_INFO" | grep -oP '"version":\s*"\K[0-9.]+' | head -1 || echo "")
+                if [ -n "$LATEST_VERSION" ] && [ "$LATEST_VERSION" != "$CURRENT_VERSION" ]; then
+                    echo "📥 Verfügbare Version: $LATEST_VERSION"
+                    log_info "Neue Version verfügbar: $CURRENT_VERSION → $LATEST_VERSION"
+                elif [ "$LATEST_VERSION" = "$CURRENT_VERSION" ]; then
+                    echo "✅ Cursor ist bereits auf dem neuesten Stand ($CURRENT_VERSION)"
+                    log_info "Cursor ist bereits aktuell, Update übersprungen"
                 else
-                    log_info "Keine laufenden Cursor-Prozesse gefunden"
+                    echo "⚠️  Versionsprüfung fehlgeschlagen, fahre mit Update fort..."
+                    log_warning "Versionsprüfung fehlgeschlagen"
                 fi
-                
-                # Extrahiere .deb
-                EXTRACT_DIR="$SCRIPT_DIR/cursor-extract"
-                rm -rf "$EXTRACT_DIR"
-                mkdir -p "$EXTRACT_DIR"
-                
-                log_info "Extrahiere Cursor .deb..."
-                cd "$EXTRACT_DIR"
-                if ! ar x "$DEB_FILE" 2>&1 | tee -a "$LOG_FILE"; then
-                    log_error "Fehler beim Extrahieren des .deb-Archivs"
-                    rm -rf "$EXTRACT_DIR" "$DEB_FILE"
-                    # Weiter mit anderen Updates
-                else
-                    if ! tar -xf data.tar.* 2>&1 | tee -a "$LOG_FILE"; then
-                        log_error "Fehler beim Extrahieren der Daten"
+            fi
+            
+            # Download .deb in Script-Ordner
+            DEB_FILE="$SCRIPT_DIR/cursor_latest_amd64.deb"
+            DOWNLOAD_URL="https://api2.cursor.sh/updates/download/golden/linux-x64-deb/cursor/2.0"
+            
+            log_info "Lade Cursor .deb von: $DOWNLOAD_URL"
+            echo "⬇️  Lade Cursor .deb..."
+            
+            if ! curl -L -f --progress-bar -o "$DEB_FILE" "$DOWNLOAD_URL" 2>&1 | tee -a "$LOG_FILE"; then
+                log_error "Cursor-Download fehlgeschlagen!"
+                echo "❌ Download fehlgeschlagen!"
+                rm -f "$DEB_FILE"
+            else
+                # Prüfe Download
+                if [[ -f "$DEB_FILE" ]] && [[ $(stat -c%s "$DEB_FILE") -gt 50000000 ]]; then
+                    DEB_SIZE=$(du -h "$DEB_FILE" | cut -f1)
+                    log_success "Download erfolgreich: $DEB_SIZE"
+                    echo "✅ Download erfolgreich: $DEB_SIZE"
+                    
+                    # Cursor-Prozesse sicher beenden
+                    log_info "Beende Cursor-Prozesse..."
+                    echo "🔒 Schließe Cursor..."
+                    
+                    # Besseres Cursor-Kill mit pkill
+                    CURSOR_PIDS=$(pgrep -f "cursor" | grep -v "$$" || true)
+                    if [ -n "$CURSOR_PIDS" ]; then
+                        log_info "Gefundene Cursor-Prozesse: $CURSOR_PIDS"
+                        # Versuche sanftes Beenden
+                        pkill -TERM -f "cursor" 2>/dev/null || true
+                        
+                        # Warte bis Prozesse beendet sind (max. 10 Sekunden)
+                        for i in {1..10}; do
+                            if ! pgrep -f "cursor" >/dev/null 2>&1; then
+                                log_success "Alle Cursor-Prozesse beendet"
+                                echo "✅ Cursor geschlossen"
+                                break
+                            fi
+                            sleep 1
+                        done
+                        
+                        # Falls noch Prozesse laufen, force kill
+                        if pgrep -f "cursor" >/dev/null 2>&1; then
+                            log_warning "Force-Kill von Cursor-Prozessen..."
+                            echo "⚠️  Force-Kill erforderlich..."
+                            pkill -9 -f "cursor" 2>/dev/null || true
+                            sleep 2
+                        fi
+                    else
+                        log_info "Keine laufenden Cursor-Prozesse gefunden"
+                        echo "ℹ️  Cursor läuft nicht"
+                    fi
+                    
+                    # Extrahiere .deb
+                    EXTRACT_DIR="$SCRIPT_DIR/cursor-extract"
+                    rm -rf "$EXTRACT_DIR"
+                    mkdir -p "$EXTRACT_DIR"
+                    
+                    log_info "Extrahiere Cursor .deb..."
+                    echo "📦 Extrahiere .deb-Archiv..."
+                    cd "$EXTRACT_DIR"
+                    
+                    if ! ar x "$DEB_FILE" 2>&1 | tee -a "$LOG_FILE"; then
+                        log_error "Fehler beim Extrahieren des .deb-Archivs"
+                        echo "❌ Fehler beim Extrahieren!"
                         rm -rf "$EXTRACT_DIR" "$DEB_FILE"
-                        # Weiter mit anderen Updates
+                    elif ! tar -xf data.tar.* 2>&1 | tee -a "$LOG_FILE"; then
+                        log_error "Fehler beim Extrahieren der Daten"
+                        echo "❌ Fehler beim Extrahieren der Daten!"
+                        rm -rf "$EXTRACT_DIR" "$DEB_FILE"
                     else
                         # Finde Cursor-Binary und Ressourcen
+                        INSTALL_SUCCESS=false
+                        
                         if [[ -d "opt/Cursor" ]]; then
                             log_info "Installiere Cursor-Update (opt/Cursor)..."
                             echo "📦 Installiere Update..."
                             if sudo cp -rf opt/Cursor/* "$CURSOR_INSTALL_DIR/" 2>&1 | tee -a "$LOG_FILE"; then
                                 sudo chmod +x "$CURSOR_INSTALL_DIR/cursor" 2>/dev/null || true
                                 log_success "Cursor-Update installiert"
+                                INSTALL_SUCCESS=true
                             elif sudo cp -rf opt/Cursor/* "$(dirname "$CURSOR_INSTALL_DIR")/" 2>&1 | tee -a "$LOG_FILE"; then
                                 sudo chmod +x "$(dirname "$CURSOR_INSTALL_DIR")/cursor" 2>/dev/null || true
                                 log_success "Cursor-Update installiert (alternativer Pfad)"
+                                INSTALL_SUCCESS=true
                             elif sudo cp -rf opt/Cursor /opt/ 2>&1 | tee -a "$LOG_FILE"; then
                                 sudo chmod +x /opt/Cursor/cursor 2>/dev/null || true
                                 log_success "Cursor-Update installiert (nach /opt)"
-                            else
-                                log_error "Fehler beim Installieren von Cursor"
+                                INSTALL_SUCCESS=true
                             fi
                         elif [[ -d "usr/share/cursor" ]]; then
                             log_info "Installiere Cursor-Update (usr/share/cursor)..."
@@ -372,42 +410,51 @@ if [ "$UPDATE_CURSOR" = "true" ]; then
                             if sudo cp -rf usr/share/cursor/* "$CURSOR_INSTALL_DIR/" 2>&1 | tee -a "$LOG_FILE"; then
                                 sudo chmod +x "$CURSOR_INSTALL_DIR/cursor" 2>/dev/null || true
                                 log_success "Cursor-Update installiert"
-                            else
-                                log_error "Fehler beim Installieren von Cursor"
+                                INSTALL_SUCCESS=true
+                            fi
+                        fi
+                        
+                        # Cleanup IMMER durchführen
+                        log_info "Bereinige temporäre Dateien..."
+                        rm -rf "$EXTRACT_DIR" "$DEB_FILE"
+                        log_info "Temporäre Dateien gelöscht"
+                        
+                        if [ "$INSTALL_SUCCESS" = "true" ]; then
+                            # Neue Version prüfen
+                            sleep 1
+                            NEW_VERSION=$(cursor --version 2>/dev/null | grep -oP '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "installiert")
+                            log_success "Cursor updated: $CURRENT_VERSION → $NEW_VERSION"
+                            echo "✅ Cursor aktualisiert: $CURRENT_VERSION → $NEW_VERSION"
+                            
+                            # Cursor neu starten (optional, nicht blockierend)
+                            log_info "Starte Cursor neu..."
+                            echo "🚀 Starte Cursor..."
+                            sleep 1
+                            if command -v cursor >/dev/null 2>&1; then
+                                nohup cursor > /dev/null 2>&1 &
+                                sleep 2
+                                if pgrep -f "cursor" >/dev/null 2>&1; then
+                                    log_success "Cursor gestartet"
+                                    echo "✅ Cursor gestartet"
+                                else
+                                    log_warning "Cursor konnte nicht automatisch gestartet werden (bitte manuell starten)"
+                                    echo "⚠️  Cursor konnte nicht automatisch gestartet werden"
+                                fi
                             fi
                         else
-                            log_error "Cursor-Dateien nicht gefunden im .deb!"
-                            rm -rf "$EXTRACT_DIR" "$DEB_FILE"
-                            # Weiter mit anderen Updates
+                            log_error "Cursor-Dateien nicht gefunden im .deb oder Installation fehlgeschlagen!"
+                            echo "❌ Installation fehlgeschlagen!"
                         fi
-                        
-                        # Cleanup
-                        rm -rf "$EXTRACT_DIR" "$DEB_FILE"
-                        
-                        # Cursor neu starten
-                        log_info "Starte Cursor neu..."
-                        echo "🚀 Starte Cursor..."
-                        sleep 2
-                        nohup cursor > /dev/null 2>&1 &
-                        if [ $? -eq 0 ]; then
-                            sleep 3
-                            log_success "Cursor gestartet"
-                        else
-                            log_warning "Cursor konnte nicht automatisch gestartet werden"
-                        fi
-                        
-                        # Neue Version prüfen
-                        NEW_VERSION=$(cursor --version 2>/dev/null | grep -oP '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "installiert")
-                        log_success "Cursor updated: $CURRENT_VERSION → $NEW_VERSION"
-                        echo "✅ Cursor updated: $CURRENT_VERSION → $NEW_VERSION"
                     fi
+                else
+                    log_error "Download zu klein oder fehlgeschlagen!"
+                    echo "❌ Download zu klein oder fehlgeschlagen!"
+                    rm -f "$DEB_FILE"
                 fi
-            else
-                log_error "Download zu klein oder fehlgeschlagen!"
-                echo "❌ Download zu klein oder fehlgeschlagen!"
-                rm -f "$DEB_FILE"
             fi
         fi
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
     fi
 fi
 
