@@ -5,6 +5,33 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/),
 und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [2.7.1] - 2025-11-08
+
+### Behoben
+- **🐛 Kritischer Bug:** `local` außerhalb von Funktionen entfernt (12 Stellen)
+  - Script schlug fehl mit "local: can only be used in a function"
+  - Alle betroffenen Variablen sind jetzt normale Zuweisungen
+- **🐛 Kritischer Bug:** `trap` mit ungequotetem Pfad
+  - Leerzeichen im Installationspfad führten zu Syntaxfehlern
+  - `$LOCK_FILE` in trap-Zeile jetzt korrekt gequotet
+- **🐛 Kritischer Bug:** `load_config()` + `set -e` Konflikt
+  - while-Schleife endete mit Exit 1 und brach Script ab
+  - `|| true` am Ende der while-Schleife hinzugefügt
+
+### Geändert
+- **📚 Dokumentation:** Changelog aus README.md entfernt
+  - README enthält jetzt nur noch Link zu CHANGELOG.md
+  - Keine doppelte Pflege mehr nötig
+- **🗑️ Cleanup:** RELEASE-GUIDE.md aus Repository entfernt
+  - Interne Checklisten gehören nicht ins öffentliche Repo
+- **📋 Regeln:** `.claude/` und `.cursorrules` aktualisiert
+  - Neue Meta-Regel: Alle Regel-Dateien synchron halten
+  - Fokus auf Einfachheit statt Komplexität
+
+### Aktualisiert
+- **🤖 GitHub Actions:** `upload-artifact@v3` → `upload-artifact@v4`
+  - v3 seit April 2024 deprecated
+
 ## [2.7.0] - 2025-11-08
 
 ### Hinzugefügt
