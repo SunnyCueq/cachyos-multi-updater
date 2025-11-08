@@ -129,7 +129,7 @@ load_config() {
                 ENABLE_AUTO_UPDATE) ENABLE_AUTO_UPDATE=$(echo "$value" | tr '[:upper:]' '[:lower:]') ;;
                 CACHE_MAX_AGE) CACHE_MAX_AGE="$value" ;;
             esac
-        done < "$CONFIG_FILE"
+        done < "$CONFIG_FILE" || true
     fi
 }
 
