@@ -1316,20 +1316,43 @@ Wenn du als ZIP heruntergeladen hast, lade die neueste Version von GitHub herunt
 
 Dies zeigt, was aktualisiert WÜRDE, ohne Änderungen vorzunehmen.
 
-### F: Was ist update-all.1?
+### F: Was ist update-all.1? Was kann sie? Wozu braucht man sie?
 
-**A:** `update-all.1` ist eine **Man-Page** (Manual Page) - ein Standard-Dokumentationsformat für Unix/Linux. Du kannst sie anzeigen mit:
+**A:** `update-all.1` ist eine **Man-Page** (Manual Page) - ein Standard-Dokumentationsformat für Unix/Linux.
+
+**Was ist eine Man-Page?**
+- Es ist die traditionelle Art, Kommandozeilen-Tools auf Linux/Unix-Systemen zu dokumentieren
+- Sie bietet prägnante, technische Dokumentation, die Unix-Konventionen folgt
+- Es ist das, was du siehst, wenn du `man ls` oder `man pacman` auf Linux eingibst
+
+**Was kann sie?**
+- Dokumentation direkt im Terminal anzeigen: `man ./update-all.1`
+- Wenn systemweit installiert: `man update-all` (funktioniert von überall)
+- Schnelle Referenz für Befehlsoptionen und Verwendung
+- Folgt Standard-Unix-Dokumentationsformat
+
+**Wozu braucht man sie?**
+- **Du brauchst sie wahrscheinlich nicht** - die README-Dateien sind detaillierter und anfängerfreundlicher
+- Sie ist nützlich, wenn du mit Unix-Dokumentationsstandards vertraut bist
+- Einige Linux-Benutzer bevorzugen Man-Pages für schnelle Referenz
+- Sie ist optional - du kannst sie ignorieren, wenn du die README bevorzugst
+
+**Wie verwendet man sie:**
 ```bash
+# Man-Page direkt anzeigen
 man ./update-all.1
-```
-Oder wenn systemweit installiert:
-```bash
+
+# Oder wenn systemweit installiert (nach Installation)
 man update-all
 ```
 
-**Was ist eine Man-Page?** Es ist die traditionelle Art, Kommandozeilen-Tools auf Linux/Unix-Systemen zu dokumentieren. Sie bietet prägnante, technische Dokumentation, die Unix-Konventionen folgt.
-
-**Brauche ich sie?** Sie ist optional - die README-Dateien bieten detailliertere, anfängerfreundlichere Dokumentation. Die Man-Page ist nützlich für Benutzer, die mit Unix-Dokumentationsstandards vertraut sind.
+**Installation (optional):**
+Wenn du sie systemweit verfügbar machen möchtest:
+```bash
+sudo cp update-all.1 /usr/local/share/man/man1/
+sudo mandb
+```
+Dann kannst du `man update-all` von überall verwenden.
 
 ### F: Was, wenn ich ein Problem habe, das nicht in der FAQ abgedeckt ist?
 
@@ -1343,7 +1366,15 @@ man update-all
 
 ## 📅 Changelog
 
-### Version 2.5.0 (Aktuell)
+### Version 2.6.0 (Aktuell)
+
+**Verbesserungen:**
+- Automatisches Cursor-Schließen/Starten entfernt (warnt nur noch, falls Cursor läuft)
+- Bessere Benutzerkontrolle - Cursor wird nicht automatisch verwaltet
+- Dokumentation aktualisiert, um Cursor-Verhalten zu reflektieren
+- FAQ-Eintrag hinzugefügt, der update-all.1 (Man-Page) erklärt
+
+### Version 2.5.0
 
 **Neue Features:**
 - Retry-Mechanismus für Downloads (konfigurierbare Wiederholungen bei Netzwerkfehlern)

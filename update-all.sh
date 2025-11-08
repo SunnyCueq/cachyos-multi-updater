@@ -5,7 +5,7 @@
 set -euo pipefail
 
 # ========== Version ==========
-SCRIPT_VERSION="2.5.0"
+SCRIPT_VERSION="2.6.0"
 GITHUB_REPO="SunnyCueq/cachyos-multi-updater"
 
 # ========== Konfiguration ==========

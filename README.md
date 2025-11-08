@@ -1307,6 +1307,44 @@ If you downloaded as ZIP, download the latest version from GitHub.
 
 This shows what WOULD be updated without making changes.
 
+### Q: What is update-all.1? What can it do? Why do I need it?
+
+**A:** `update-all.1` is a **Man-Page** (manual page) - a standard Unix/Linux documentation format.
+
+**What is a Man-Page?**
+- It's the traditional way to document command-line tools on Linux/Unix systems
+- It provides concise, technical documentation that follows Unix conventions
+- It's what you see when you type `man ls` or `man pacman` on Linux
+
+**What can it do?**
+- View documentation directly in the terminal: `man ./update-all.1`
+- If installed system-wide: `man update-all` (works from anywhere)
+- Provides quick reference for command options and usage
+- Follows standard Unix documentation format
+
+**Why do I need it?**
+- **You probably don't need it** - the README files are more detailed and beginner-friendly
+- It's useful if you're familiar with Unix documentation standards
+- Some Linux users prefer Man-Pages for quick reference
+- It's optional - you can ignore it if you prefer the README
+
+**How to use it:**
+```bash
+# View the Man-Page directly
+man ./update-all.1
+
+# Or if installed system-wide (after installation)
+man update-all
+```
+
+**Installation (optional):**
+If you want to make it available system-wide:
+```bash
+sudo cp update-all.1 /usr/local/share/man/man1/
+sudo mandb
+```
+Then you can use `man update-all` from anywhere.
+
 ### Q: What if I have a problem not covered in the FAQ?
 
 **A:** Check these resources in order:
@@ -1319,7 +1357,15 @@ This shows what WOULD be updated without making changes.
 
 ## 📅 Changelog
 
-### Version 2.5.0 (Current)
+### Version 2.6.0 (Current)
+
+**Improvements:**
+- Removed automatic Cursor close/restart (now only warns if Cursor is running)
+- Better user control - Cursor is not automatically managed
+- Updated documentation to reflect Cursor behavior changes
+- Added FAQ entry explaining update-all.1 (Man-Page)
+
+### Version 2.5.0
 
 **New features:**
 - Retry mechanism for downloads (configurable retries on network failures)
